@@ -46,8 +46,8 @@ final contactsListProvider = FutureProvider<List<Contact>>((ref) async {
   return contacts;
 });
 
-// Kişileri göstermeyi kontrol eden durumu sakla
-final showContactsProvider = StateProvider<bool>((ref) => false);
+// Son yedekleme tarihi sağlayıcısı (örnek)
+final lastBackupDateProvider = StateProvider<DateTime?>((ref) => null);
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -62,16 +62,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // Sekme değiştiğinde çağrılacak metod
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    // Ayarlar sekmesine geçiş
-    if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const SettingsScreen()),
-      );
+    if (index == 2) {
+      // Ayarlar sekmesi
+      Navigator.pushNamed(context, '/settings');
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
     }
   }
 
@@ -174,188 +171,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Tema modunu izle
+    final themeMode = ref.watch(themeProvider);
+    final isDarkMode = themeMode == ThemeMode.dark;
+
+    // Tema renkleri
+    final backgroundColor = isDarkMode
+        ? AppTheme.darkBackgroundColor
+        : AppTheme.lightBackgroundColor;
+    final surfaceColor =
+        isDarkMode ? AppTheme.darkSurfaceColor : AppTheme.lightSurfaceColor;
+    final cardColor =
+        isDarkMode ? AppTheme.darkCardColor : AppTheme.lightCardColor;
+    final textColor =
+        isDarkMode ? AppTheme.darkTextColor : AppTheme.lightTextColor;
+    final textSecondaryColor = isDarkMode
+        ? AppTheme.darkTextSecondaryColor
+        : AppTheme.lightTextSecondaryColor;
+
     // İzin durumunu izle
     final permissionStatus = ref.watch(contactsPermissionProvider);
+
+    // Arka plan gradyanı
+    final backgroundGradient = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        backgroundColor,
+        surfaceColor,
+      ],
+    );
 
     // Rehber sayısını izle
     final contactsCount = ref.watch(contactsCountProvider);
     final isPermissionGranted = permissionStatus == PermissionStatus.granted;
 
     return Scaffold(
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        title: Text(
+          context.l10n.home_screen_title,
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: AppTheme.primaryColor,
+        elevation: 0,
+      ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.red,
-              Colors.red.shade800,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Başlık
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  'Rehber Yedekleme',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-
-              // İzin durumuna göre içerik
-              Expanded(
-                child: permissionStatus == PermissionStatus.granted
-                    ? _buildStatisticsContent()
-                    : _buildPermissionRequest(),
-              ),
-            ],
-          ),
-        ),
+        decoration: BoxDecoration(gradient: backgroundGradient),
+        child: permissionStatus == PermissionStatus.granted
+            ? _buildStatisticsScreen(isDarkMode, textColor, cardColor)
+            : _buildPermissionRequest(isDarkMode, textColor, cardColor),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: _buildBottomNavigationBar(isDarkMode),
     );
   }
 
-  // İstatistikler içeriği
-  Widget _buildStatisticsContent() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // İstatistik kartları
-          _buildStatisticsCard(
-            title: 'Toplam Kişi Sayısı',
-            value: ref.watch(contactsCountProvider).when(
-                  data: (count) => count.toString(),
-                  loading: () => '...',
-                  error: (_, __) => '0',
-                ),
-            icon: Icons.people,
-            color: Colors.blue,
-          ),
-
-          SizedBox(height: 16),
-
-          _buildStatisticsCard(
-            title: 'Son Yedekleme',
-            value: '2 gün önce',
-            icon: Icons.history,
-            color: Colors.green,
-          ),
-
-          SizedBox(height: 16),
-
-          _buildStatisticsCard(
-            title: 'Yedekleme Boyutu',
-            value: '1.2 MB',
-            icon: Icons.storage,
-            color: Colors.orange,
-          ),
-
-          SizedBox(height: 32),
-
-          // Yedekleme butonu
-          ElevatedButton.icon(
-            onPressed: () => Navigator.pushNamed(context, '/export'),
-            icon: Icon(Icons.backup),
-            label: Text('Rehberi Yedekle'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.red,
-              minimumSize: Size(double.infinity, 56),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 2,
-            ),
-          ),
-
-          SizedBox(height: 16),
-
-          // Geri yükleme butonu
-          OutlinedButton.icon(
-            onPressed: () => Navigator.pushNamed(context, '/import'),
-            icon: Icon(Icons.restore),
-            label: Text('Yedeği Geri Yükle'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: BorderSide(color: Colors.white, width: 2),
-              minimumSize: Size(double.infinity, 56),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // İstatistik kartı
-  Widget _buildStatisticsCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 28,
-            ),
-          ),
-          SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 14,
-                ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                value,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // İzin isteme ekranı
-  Widget _buildPermissionRequest() {
+  Widget _buildPermissionRequest(
+      bool isDarkMode, Color textColor, Color cardColor) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -365,35 +237,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Icon(
               Icons.contacts_outlined,
               size: 64,
-              color: Colors.white.withOpacity(0.5),
+              color: textColor.withOpacity(0.5),
             ),
             const SizedBox(height: 24),
             Text(
-              'Rehberinize erişmek için izin gerekiyor',
+              context.l10n.contacts_permission_message,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Kişilerinizi yedeklemek ve geri yüklemek için rehberinize erişim izni vermeniz gerekmektedir.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 14,
+                color: textColor,
+                fontSize: 16,
               ),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: _requestPermission,
               icon: const Icon(Icons.security),
-              label: Text('İzin Ver'),
+              label: Text(context.l10n.grant_permission),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.red,
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
                   vertical: 12,
@@ -409,47 +271,297 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // Alt navigasyon çubuğu
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: Offset(0, -2),
+  Widget _buildStatisticsScreen(
+      bool isDarkMode, Color textColor, Color cardColor) {
+    // Rehber sayısını izle
+    final contactsCountAsync = ref.watch(contactsCountProvider);
+
+    // Son yedekleme tarihi (örnek)
+    final lastBackupDate = ref.watch(lastBackupDateProvider);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Rehber İstatistikleri
+          _buildStatisticsCard(
+            isDarkMode,
+            textColor,
+            cardColor,
+            title: context.l10n.contacts_title,
+            icon: Icons.contacts,
+            child: contactsCountAsync.when(
+              data: (count) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.l10n.total_contacts
+                        .replaceAll('{count}', count.toString()),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Son güncelleme: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: textColor.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) => Text(
+                'Hata: $error',
+                style: TextStyle(color: textColor),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Son Yedekleme Bilgisi
+          _buildStatisticsCard(
+            isDarkMode,
+            textColor,
+            cardColor,
+            title: 'Yedekleme Durumu',
+            icon: Icons.backup,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  lastBackupDate != null
+                      ? 'Son yedekleme: ${lastBackupDate.day}/${lastBackupDate.month}/${lastBackupDate.year}'
+                      : 'Henüz yedekleme yapılmadı',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: textColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pushNamed(context, '/export'),
+                  icon: const Icon(Icons.backup),
+                  label: const Text('Rehberi Yedekle'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Hızlı İşlemler
+          _buildStatisticsCard(
+            isDarkMode,
+            textColor,
+            cardColor,
+            title: context.l10n.quick_actions,
+            icon: Icons.flash_on,
+            child: Column(
+              children: [
+                _buildQuickActionItem(
+                  isDarkMode,
+                  textColor,
+                  icon: Icons.backup,
+                  title: context.l10n.backup_contacts,
+                  subtitle: context.l10n.backup_contacts_desc,
+                  onTap: () => Navigator.pushNamed(context, '/export'),
+                ),
+                const Divider(),
+                _buildQuickActionItem(
+                  isDarkMode,
+                  textColor,
+                  icon: Icons.restore,
+                  title: context.l10n.restore_contacts,
+                  subtitle: context.l10n.restore_contacts_desc,
+                  onTap: () {
+                    // İçe aktarma ekranına git
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Premium Bilgisi
+          _buildStatisticsCard(
+            isDarkMode,
+            textColor,
+            cardColor,
+            title: 'Premium Durum',
+            icon: Icons.workspace_premium,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'Ücretsiz',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Şu anda ücretsiz sürümü kullanıyorsunuz',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: textColor.withOpacity(0.7),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pushNamed(context, '/premium'),
+                  icon: const Icon(Icons.workspace_premium),
+                  label: const Text('Premium\'a Yükselt'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  // İstatistik kartı widget'ı
+  Widget _buildStatisticsCard(
+    bool isDarkMode,
+    Color textColor,
+    Color cardColor, {
+    required String title,
+    required IconData icon,
+    required Widget child,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: AppTheme.primaryColor),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+
+  // Hızlı işlem öğesi
+  Widget _buildQuickActionItem(
+    bool isDarkMode,
+    Color textColor, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(
-              icon: Icons.home,
-              label: 'Ana Sayfa',
-              index: 0,
-              isSelected: _selectedIndex == 0,
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: AppTheme.primaryColor,
+                size: 20,
+              ),
             ),
-            _buildNavItem(
-              icon: Icons.calendar_today,
-              label: 'Takvim',
-              index: 1,
-              isSelected: _selectedIndex == 1,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: textColor.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            _buildNavItem(
-              icon: Icons.bar_chart,
-              label: 'İstatistikler',
-              index: 2,
-              isSelected: _selectedIndex == 2,
-            ),
-            _buildNavItem(
-              icon: Icons.settings,
-              label: 'Ayarlar',
-              index: 3,
-              isSelected: _selectedIndex == 3,
+            Icon(
+              Icons.arrow_forward_ios,
+              color: textColor.withOpacity(0.5),
+              size: 16,
             ),
           ],
         ),
@@ -457,33 +569,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // Navigasyon öğesi
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required int index,
-    required bool isSelected,
-  }) {
-    return InkWell(
-      onTap: () => _onItemTapped(index),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isSelected ? Colors.red : Colors.grey,
-            size: 24,
-          ),
-          SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.red : Colors.grey,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
+  Widget _buildBottomNavigationBar(bool isDarkMode) {
+    return BottomNavigationBar(
+      currentIndex: _selectedIndex,
+      onTap: _onItemTapped,
+      backgroundColor: isDarkMode ? AppTheme.darkCardColor : Colors.white,
+      selectedItemColor: AppTheme.primaryColor,
+      unselectedItemColor: isDarkMode
+          ? AppTheme.darkTextSecondaryColor
+          : AppTheme.lightTextSecondaryColor,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home),
+          label: 'Ana Sayfa',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.calendar_today),
+          label: 'Takvim',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.settings),
+          label: 'Ayarlar',
+        ),
+      ],
     );
   }
 }
