@@ -12,6 +12,7 @@ import 'screens/onboarding_screen.dart';
 import 'theme/app_theme.dart';
 import 'utils/app_localizations.dart';
 
+//
 // Premium durum Provider'ı (eski provider ile uyumluluk için)
 final isPremiumProvider = StateProvider<bool>((ref) => false);
 final isPremiumUserProvider = StateProvider<bool>((ref) => false);
