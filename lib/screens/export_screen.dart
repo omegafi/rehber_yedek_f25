@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/contact_format.dart';
 import '../services/contacts_service.dart';
 import '../services/file_sharing_service.dart';
@@ -11,6 +12,12 @@ import '../utils/app_localizations.dart'; // Lokalizasyon için
 
 // Premium durumu ve maksimum ücretsiz kişi sayısı için import
 import '../main.dart' show isPremiumProvider, maxFreeContactsProvider;
+
+// Rehber filtreleme ayarları için import
+import '../screens/settings_screen.dart'
+    show
+        includeContactsWithoutNumberProvider,
+        includeNumbersWithoutNameProvider;
 
 // İşlem durumu mesajı için provider
 final exportStatusMessageProvider = StateProvider<String>((ref) => '');
@@ -29,6 +36,9 @@ final exportedFileProvider = StateProvider<String?>((ref) => null);
 // Dışa aktarma işlem durumları
 enum ExportState { initial, loading, success, error }
 
+// Dışa aktarma hedefi
+enum ExportDestination { share, saveToPhone }
+
 class ExportScreen extends ConsumerStatefulWidget {
   const ExportScreen({Key? key}) : super(key: key);
 
@@ -36,33 +46,34 @@ class ExportScreen extends ConsumerStatefulWidget {
   ConsumerState<ExportScreen> createState() => _ExportScreenState();
 }
 
-class _ExportScreenState extends ConsumerState<ExportScreen>
-    with SingleTickerProviderStateMixin {
+class _ExportScreenState extends ConsumerState<ExportScreen> {
   final _contactsManager = ContactsManager();
   final _fileSharingService = FileSharingService();
   String? _errorMessage;
   bool _isExporting = false;
-  late AnimationController _animationController;
-  late Animation<double> _animation;
+
+  // Dışa aktarma hedefi
+  ExportDestination _exportDestination = ExportDestination.share;
+
+  // Seçili kişi ID'leri
+  Set<String>? _selectedContactIds;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
 
-    _animation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    );
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
+    // Seçili kişileri al (varsa)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args != null && args is Map<String, dynamic>) {
+        final selectedIds = args['selectedContactIds'];
+        if (selectedIds != null && selectedIds is Set<String>) {
+          setState(() {
+            _selectedContactIds = selectedIds;
+          });
+        }
+      }
+    });
   }
 
   @override
@@ -106,185 +117,311 @@ class _ExportScreenState extends ConsumerState<ExportScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          context.l10n.export_screen_title,
-          style: TextStyle(color: textColor),
+          _selectedContactIds != null
+              ? '${_selectedContactIds!.length} Kişiyi Yedekle'
+              : context.l10n.export_screen_title,
+          style: const TextStyle(color: Colors.white),
         ),
         elevation: 0,
-        backgroundColor: backgroundColor,
-        foregroundColor: textColor,
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: Colors.white,
       ),
       backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Format seçim bölümü
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.l10n.export_format,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                      ),
+      body: Column(
+        children: [
+          // Ana içerik
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Seçili kişi bilgisi
+                  if (_selectedContactIds != null)
+                    _buildInfoCard(
+                      icon: Icons.people,
+                      title:
+                          'Seçili ${_selectedContactIds!.length} kişi yedeklenecek',
+                      color: AppTheme.primaryColor,
                     ),
+
+                  // Format seçimi
+                  const SizedBox(height: 16),
+                  Text(
+                    context.l10n.export_format,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildFormatSelector(selectedFormat, cardColor, textColor),
+
+                  // Hedef seçimi
+                  const SizedBox(height: 16),
+                  Text(
+                    'Yedekleme Hedefi',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildDestinationSelector(cardColor, textColor),
+
+                  // Premium uyarısı
+                  if (needsPremium) ...[
                     const SizedBox(height: 16),
-                    _buildFormatOptions(selectedFormat, cardColor, textColor),
+                    _buildInfoCard(
+                      icon: Icons.warning_amber_rounded,
+                      title: 'Premium gerekli',
+                      subtitle:
+                          'Rehberinizde $contactsCount kişi var, ancak ücretsiz sürüm yalnızca ilk $maxFreeContacts kişiyi dışa aktarmanıza izin verir.',
+                      color: Colors.orange,
+                      actionText: 'Premium\'a Yükselt',
+                      onAction: () => Navigator.pushNamed(context, '/premium'),
+                    ),
                   ],
+                ],
+              ),
+            ),
+          ),
+
+          // Alt buton bölümü
+          Container(
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: isDarkMode ? AppTheme.darkCardColor : Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 5,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: ElevatedButton.icon(
+              onPressed: isExporting
+                  ? null
+                  : () => _exportContacts(
+                        selectedFormat,
+                        isPremium,
+                        maxFreeContacts,
+                        contactsCount,
+                      ),
+              icon: isExporting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Icon(_exportDestination == ExportDestination.share
+                      ? Icons.share
+                      : Icons.save),
+              label: Text(
+                isExporting
+                    ? context.l10n.exporting
+                    : _exportDestination == ExportDestination.share
+                        ? context.l10n.export_and_share
+                        : 'Telefona Kaydet',
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
             ),
-
-            // Alt bölüm (Premium uyarısı ve buton)
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: isDarkMode ? AppTheme.darkCardColor : Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (needsPremium) ...[
-                    _buildPremiumWarning(maxFreeContacts, contactsCount),
-                    const SizedBox(height: 16),
-                  ],
-                  ElevatedButton.icon(
-                    onPressed: isExporting
-                        ? null
-                        : () => _exportContacts(
-                              selectedFormat,
-                              isPremium,
-                              maxFreeContacts,
-                              contactsCount,
-                            ),
-                    icon: isExporting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Icon(Icons.share),
-                    label: Text(
-                      isExporting
-                          ? context.l10n.exporting
-                          : context.l10n.export_and_share,
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  // Format seçenekleri
-  Widget _buildFormatOptions(
-      ContactFormat selectedFormat, Color cardColor, Color textColor) {
-    return Column(
-      children: [
-        // vCard formatı (tam genişlikte)
-        _buildFormatOption(
-          format: ContactFormat.vCard,
-          title: 'vCard (.vcf)',
-          description: context.l10n.vcard_desc,
-          isSelected: selectedFormat == ContactFormat.vCard,
-          cardColor: cardColor,
-          textColor: textColor,
-          isFullWidth: true,
-        ),
-        const SizedBox(height: 16),
-
-        // Diğer formatlar (ikişerli grid)
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.0,
-          children: [
-            _buildFormatOption(
-              format: ContactFormat.csv,
-              title: 'CSV (.csv)',
-              description: context.l10n.csv_desc,
-              isSelected: selectedFormat == ContactFormat.csv,
-              cardColor: cardColor,
-              textColor: textColor,
-              isFullWidth: false,
-            ),
-            _buildFormatOption(
-              format: ContactFormat.excel,
-              title: 'Excel (.xlsx)',
-              description: context.l10n.excel_desc,
-              isSelected: selectedFormat == ContactFormat.excel,
-              cardColor: cardColor,
-              textColor: textColor,
-              isFullWidth: false,
-            ),
-            _buildFormatOption(
-              format: ContactFormat.pdf,
-              title: 'PDF (.pdf)',
-              description: context.l10n.pdf_desc,
-              isSelected: selectedFormat == ContactFormat.pdf,
-              cardColor: cardColor,
-              textColor: textColor,
-              isFullWidth: false,
-            ),
-            _buildFormatOption(
-              format: ContactFormat.json,
-              title: 'JSON (.json)',
-              description: context.l10n.json_desc,
-              isSelected: selectedFormat == ContactFormat.json,
-              cardColor: cardColor,
-              textColor: textColor,
-              isFullWidth: false,
+  // Bilgi kartı widget'ı
+  Widget _buildInfoCard({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required Color color,
+    String? actionText,
+    VoidCallback? onAction,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 12,
+                color: color.withOpacity(0.8),
+              ),
             ),
           ],
+          if (actionText != null && onAction != null) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: onAction,
+              style: TextButton.styleFrom(
+                foregroundColor: color,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                minimumSize: const Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(actionText),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // Format seçici
+  Widget _buildFormatSelector(
+      ContactFormat selectedFormat, Color cardColor, Color textColor) {
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: ContactFormat.values.map((format) {
+          final isSelected = selectedFormat == format;
+          return InkWell(
+            onTap: () {
+              ref.read(selectedFormatProvider.notifier).state = format;
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(
+                    _getFormatIcon(format),
+                    color: isSelected ? AppTheme.primaryColor : Colors.grey,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          format.displayName,
+                          style: TextStyle(
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: textColor,
+                          ),
+                        ),
+                        Text(
+                          _getFormatDescription(format, context),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: textColor.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isSelected)
+                    const Icon(
+                      Icons.check_circle,
+                      color: AppTheme.primaryColor,
+                      size: 18,
+                    ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  // Hedef seçici
+  Widget _buildDestinationSelector(Color cardColor, Color textColor) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildDestinationOption(
+            title: 'Paylaş',
+            icon: Icons.share,
+            isSelected: _exportDestination == ExportDestination.share,
+            cardColor: cardColor,
+            textColor: textColor,
+            onTap: () {
+              setState(() {
+                _exportDestination = ExportDestination.share;
+              });
+            },
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildDestinationOption(
+            title: 'Telefona Kaydet',
+            icon: Icons.save,
+            isSelected: _exportDestination == ExportDestination.saveToPhone,
+            cardColor: cardColor,
+            textColor: textColor,
+            onTap: () {
+              setState(() {
+                _exportDestination = ExportDestination.saveToPhone;
+              });
+            },
+          ),
         ),
       ],
     );
   }
 
-  // Format seçeneği
-  Widget _buildFormatOption({
-    required ContactFormat format,
+  // Hedef seçeneği
+  Widget _buildDestinationOption({
     required String title,
-    required String description,
+    required IconData icon,
     required bool isSelected,
     required Color cardColor,
     required Color textColor,
-    required bool isFullWidth,
+    required VoidCallback onTap,
   }) {
     return InkWell(
-      onTap: () {
-        ref.read(selectedFormatProvider.notifier).state = format;
-      },
+      onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(8),
@@ -295,168 +432,26 @@ class _ExportScreenState extends ConsumerState<ExportScreen>
             width: isSelected ? 2 : 1,
           ),
         ),
-        child: isFullWidth
-            ? _buildFullWidthFormat(
-                format, title, description, isSelected, textColor)
-            : _buildGridFormat(
-                format, title, description, isSelected, textColor),
-      ),
-    );
-  }
-
-  // Tam genişlikte format (vCard için)
-  Widget _buildFullWidthFormat(ContactFormat format, String title,
-      String description, bool isSelected, Color textColor) {
-    return Row(
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppTheme.primaryColor.withOpacity(0.1)
-                : Colors.grey.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            _getFormatIcon(format),
-            color: isSelected ? AppTheme.primaryColor : Colors.grey,
-            size: 24,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (isSelected)
-          const Icon(
-            Icons.check_circle,
-            color: AppTheme.primaryColor,
-          ),
-      ],
-    );
-  }
-
-  // Grid format (diğer formatlar için)
-  Widget _buildGridFormat(ContactFormat format, String title,
-      String description, bool isSelected, Color textColor) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppTheme.primaryColor.withOpacity(0.1)
-                : Colors.grey.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            _getFormatIcon(format),
-            color: isSelected ? AppTheme.primaryColor : Colors.grey,
-            size: 24,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: textColor,
-            fontSize: 14,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Expanded(
-          child: Text(
-            description,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey[600],
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppTheme.primaryColor : Colors.grey,
+              size: 24,
             ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Premium uyarısı
-  Widget _buildPremiumWarning(int maxFreeContacts, int contactsCount) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppTheme.primaryColor,
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.warning_amber_rounded,
-                color: AppTheme.primaryColor,
+            const SizedBox(height: 4),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: textColor,
+                fontSize: 13,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Premium gerekli',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.lightTextColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Rehberinizde $contactsCount kişi var, ancak ücretsiz sürüm yalnızca ilk $maxFreeContacts kişiyi dışa aktarmanıza izin verir.',
-            style: TextStyle(
-              color: AppTheme.lightTextSecondaryColor,
             ),
-          ),
-          const SizedBox(height: 8),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pushNamed(context, '/premium');
-            },
-            icon: const Icon(Icons.workspace_premium),
-            label: const Text('Premium\'a Yükselt'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -477,6 +472,22 @@ class _ExportScreenState extends ConsumerState<ExportScreen>
     }
   }
 
+  // Format açıklaması
+  String _getFormatDescription(ContactFormat format, BuildContext context) {
+    switch (format) {
+      case ContactFormat.vCard:
+        return context.l10n.vcard_desc;
+      case ContactFormat.csv:
+        return context.l10n.csv_desc;
+      case ContactFormat.excel:
+        return context.l10n.excel_desc;
+      case ContactFormat.pdf:
+        return context.l10n.pdf_desc;
+      case ContactFormat.json:
+        return context.l10n.json_desc;
+    }
+  }
+
   // Dışa aktarma işlemi
   Future<void> _exportContacts(
     ContactFormat format,
@@ -485,7 +496,9 @@ class _ExportScreenState extends ConsumerState<ExportScreen>
     int contactsCount,
   ) async {
     // Premium kontrolü
-    if (!isPremium && contactsCount > maxFreeContacts) {
+    if (!isPremium &&
+        contactsCount > maxFreeContacts &&
+        _selectedContactIds == null) {
       // Premium olmayan kullanıcılar için sınırlama
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -513,28 +526,38 @@ class _ExportScreenState extends ConsumerState<ExportScreen>
         'Kişiler hazırlanıyor...';
 
     try {
-      // Kişileri al
-      final contacts = await _contactsManager.getAllContacts();
-
-      // Premium olmayan kullanıcılar için sınırlama
-      final limitedContacts =
-          isPremium ? contacts : contacts.take(maxFreeContacts).toList();
+      // Filtreleme ayarlarını al
+      final includeContactsWithoutNumber =
+          ref.read(includeContactsWithoutNumberProvider);
+      final includeNumbersWithoutName =
+          ref.read(includeNumbersWithoutNameProvider);
 
       // Dışa aktar
       final exportedFile = await _contactsManager.exportContacts(
         format,
         limitContacts: isPremium ? null : maxFreeContacts,
+        selectedContactIds: _selectedContactIds,
+        includeContactsWithoutNumber: includeContactsWithoutNumber,
+        includeNumbersWithoutName: includeNumbersWithoutName,
       );
 
       if (exportedFile != null) {
         ref.read(exportedFileProvider.notifier).state = exportedFile;
         ref.read(exportStateProvider.notifier).state = ExportState.success;
 
-        // Dosyayı paylaş
-        await _fileSharingService.shareFile(
-          exportedFile,
-          format,
-        );
+        if (_exportDestination == ExportDestination.share) {
+          // Dosyayı paylaş
+          await _fileSharingService.shareFile(
+            exportedFile,
+            format,
+          );
+        } else {
+          // Telefona kaydet
+          await _saveToPhone(exportedFile, format);
+        }
+
+        // Son yedekleme tarihini güncelle
+        ref.read(lastBackupDateProvider.notifier).state = DateTime.now();
       } else {
         ref.read(exportStateProvider.notifier).state = ExportState.error;
         setState(() {
@@ -550,6 +573,56 @@ class _ExportScreenState extends ConsumerState<ExportScreen>
       setState(() {
         _isExporting = false;
       });
+    }
+  }
+
+  // Telefona kaydetme işlemi
+  Future<void> _saveToPhone(String filePath, ContactFormat format) async {
+    try {
+      // Dosya varlığını kontrol et
+      final file = File(filePath);
+      if (!(await file.exists())) {
+        throw Exception('Kaydedilecek dosya bulunamadı');
+      }
+
+      // Dosya adını al
+      final fileName = filePath.split('/').last;
+
+      // Kaydetme konumunu seç
+      String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+        dialogTitle: 'Yedekleme Konumu Seçin',
+      );
+
+      if (selectedDirectory == null) {
+        // Kullanıcı iptal etti
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Kaydetme işlemi iptal edildi')),
+        );
+        return;
+      }
+
+      // Hedef dosya yolu
+      final targetPath = '$selectedDirectory/$fileName';
+
+      // Dosyayı kopyala
+      await file.copy(targetPath);
+
+      // Başarı mesajı
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Dosya başarıyla kaydedildi: $targetPath'),
+          action: SnackBarAction(
+            label: 'Göster',
+            onPressed: () async {
+              await _fileSharingService.openFile(targetPath);
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Dosya kaydedilemedi: $e')),
+      );
     }
   }
 }

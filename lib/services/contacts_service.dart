@@ -128,8 +128,13 @@ class ContactsManager {
   }
 
   // Tüm kişileri formata göre dışa aktar
-  Future<String> exportContacts(ContactFormat format,
-      {int? limitContacts}) async {
+  Future<String> exportContacts(
+    ContactFormat format, {
+    int? limitContacts,
+    Set<String>? selectedContactIds,
+    bool includeContactsWithoutNumber = true,
+    bool includeNumbersWithoutName = true,
+  }) async {
     // Uzun işlem öncesi izin kontrolü
     final permission = await requestContactPermission();
     if (permission != PermissionStatus.granted) {
@@ -140,39 +145,69 @@ class ContactsManager {
         'Kişileri ${format.displayName} formatında dışa aktarma başlıyor...');
 
     // Kişileri al
-    final contacts = await getAllContacts();
-    if (contacts.isEmpty) {
+    final allContacts = await getAllContacts();
+    if (allContacts.isEmpty) {
       throw Exception('Dışa aktarılacak kişi yok veya kişilere erişilemedi');
     }
 
-    // Eğer limitContacts belirtilmişse, kişi sayısını sınırla
-    final limitedContacts =
-        limitContacts != null && contacts.length > limitContacts
-            ? contacts.sublist(0, limitContacts)
-            : contacts;
+    // Filtreleme seçeneklerini uygula
+    List<Contact> filteredContacts = allContacts;
 
-    if (limitContacts != null && contacts.length > limitContacts) {
+    // Numarası olmayan kişileri filtrele
+    if (!includeContactsWithoutNumber) {
+      filteredContacts = filteredContacts
+          .where((contact) => contact.phones.isNotEmpty)
+          .toList();
       debugPrint(
-          'Kişi sayısı sınırlandırıldı: ${contacts.length} -> $limitContacts');
+          'Numarası olmayan kişiler filtrelendi: ${allContacts.length} -> ${filteredContacts.length}');
+    }
+
+    // İsmi olmayan numaraları filtrele
+    if (!includeNumbersWithoutName) {
+      filteredContacts = filteredContacts
+          .where((contact) =>
+              contact.name.first.isNotEmpty || contact.name.last.isNotEmpty)
+          .toList();
+      debugPrint(
+          'İsmi olmayan numaralar filtrelendi: ${allContacts.length} -> ${filteredContacts.length}');
+    }
+
+    // Seçili kişileri filtrele
+    if (selectedContactIds != null && selectedContactIds.isNotEmpty) {
+      filteredContacts = filteredContacts
+          .where((contact) => selectedContactIds.contains(contact.id))
+          .toList();
+      debugPrint(
+          'Seçili kişiler filtrelendi: ${allContacts.length} -> ${filteredContacts.length}');
+    }
+
+    // Eğer limitContacts belirtilmişse ve seçili kişiler yoksa, kişi sayısını sınırla
+    List<Contact> contacts = filteredContacts;
+    if (limitContacts != null &&
+        selectedContactIds == null &&
+        contacts.length > limitContacts) {
+      contacts = contacts.sublist(0, limitContacts);
+      debugPrint(
+          'Kişi sayısı sınırlandırıldı: ${filteredContacts.length} -> $limitContacts');
     }
 
     // Format işlemine göre dosya oluştur
     String filePath;
     switch (format) {
       case ContactFormat.vCard:
-        filePath = await _exportAsVCard(limitedContacts);
+        filePath = await _exportAsVCard(contacts);
         break;
       case ContactFormat.csv:
-        filePath = await _exportAsCSV(limitedContacts);
+        filePath = await _exportAsCSV(contacts);
         break;
       case ContactFormat.excel:
-        filePath = await _exportAsExcel(limitedContacts);
+        filePath = await _exportAsExcel(contacts);
         break;
       case ContactFormat.pdf:
-        filePath = await _exportAsPDF(limitedContacts);
+        filePath = await _exportAsPDF(contacts);
         break;
       case ContactFormat.json:
-        filePath = await _exportAsJSON(limitedContacts);
+        filePath = await _exportAsJSON(contacts);
         break;
     }
 

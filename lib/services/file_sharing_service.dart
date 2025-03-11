@@ -113,10 +113,6 @@ class FileSharingService {
           break;
       }
 
-      // Doğrudan paylaşım yap
-      debugPrint('Dosya paylaşım ekranı açılıyor: $filePath');
-      debugPrint('Mime tipi: $mimeType');
-
       // Paylaşım metni
       final String shareText =
           'Rehber yedeği - ${format.displayName} formatında';
@@ -361,14 +357,27 @@ class FileSharingService {
     }
   }
 
-  // Dosyayı açma
-  Future<OpenResult> openFile(String filePath) async {
-    final file = File(filePath);
-    if (!(await file.exists())) {
-      throw Exception('Dosya bulunamadı: $filePath');
-    }
+  // Dosyayı aç
+  Future<void> openFile(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!(await file.exists())) {
+        debugPrint('Dosya bulunamadı: $filePath');
+        throw Exception('Açılacak dosya bulunamadı: $filePath');
+      }
 
-    return await OpenFile.open(filePath);
+      final result = await OpenFile.open(filePath);
+
+      if (result.type != ResultType.done) {
+        debugPrint('Dosya açma hatası: ${result.message}');
+        throw Exception('Dosya açılamadı: ${result.message}');
+      }
+
+      debugPrint('Dosya başarıyla açıldı: $filePath');
+    } catch (e) {
+      debugPrint('Dosya açma hatası: $e');
+      throw Exception('Dosya açılamadı: $e');
+    }
   }
 
   // E-posta ile gönderme

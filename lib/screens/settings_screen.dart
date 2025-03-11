@@ -8,6 +8,12 @@ import '../screens/onboarding_screen.dart';
 import '../utils/app_localizations.dart';
 import '../theme/app_theme.dart';
 
+// Numarası olmayan kişileri dahil etme durumu
+final includeContactsWithoutNumberProvider = StateProvider<bool>((ref) => true);
+
+// İsmi olmayan numaraları dahil etme durumu
+final includeNumbersWithoutNameProvider = StateProvider<bool>((ref) => true);
+
 // Ayarlar ekranı
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -17,6 +23,12 @@ class SettingsScreen extends ConsumerWidget {
     final locale = ref.watch(localeProvider);
     final themeMode = ref.watch(themeProvider);
     final isDarkMode = themeMode == ThemeMode.dark;
+
+    // Rehber filtreleme ayarları
+    final includeContactsWithoutNumber =
+        ref.watch(includeContactsWithoutNumberProvider);
+    final includeNumbersWithoutName =
+        ref.watch(includeNumbersWithoutNameProvider);
 
     final backgroundColor = isDarkMode
         ? AppTheme.darkBackgroundColor
@@ -30,7 +42,7 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           context.l10n.settings_screen_title,
-          style: TextStyle(color: textColor),
+          style: TextStyle(color: Colors.white),
         ),
         backgroundColor: primaryColor,
         elevation: 0,
@@ -127,6 +139,107 @@ class SettingsScreen extends ConsumerWidget {
                     fontSize: 12,
                     color: textColor.withOpacity(0.7),
                   ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Rehber Filtreleme Ayarları
+          _buildSection(
+            context,
+            title: 'Rehber Filtreleme',
+            icon: Icons.filter_list,
+            color: primaryColor,
+            textColor: textColor,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Numarası olmayan kişileri dahil etme
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Numarası olmayan kişileri dahil et',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: textColor,
+                            ),
+                          ),
+                          Text(
+                            'Telefon numarası olmayan kişileri yedeklemeye dahil et',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: textColor.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: includeContactsWithoutNumber,
+                      onChanged: (value) async {
+                        ref
+                            .read(includeContactsWithoutNumberProvider.notifier)
+                            .state = value;
+
+                        // Değişikliği kaydet
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setBool(
+                            'include_contacts_without_number', value);
+                      },
+                      activeColor: primaryColor,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // İsmi olmayan numaraları dahil etme
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'İsmi olmayan numaraları dahil et',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: textColor,
+                            ),
+                          ),
+                          Text(
+                            'İsim bilgisi olmayan telefon numaralarını yedeklemeye dahil et',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: textColor.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: includeNumbersWithoutName,
+                      onChanged: (value) async {
+                        ref
+                            .read(includeNumbersWithoutNameProvider.notifier)
+                            .state = value;
+
+                        // Değişikliği kaydet
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setBool(
+                            'include_numbers_without_name', value);
+                      },
+                      activeColor: primaryColor,
+                    ),
+                  ],
                 ),
               ],
             ),
