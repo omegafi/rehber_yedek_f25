@@ -118,13 +118,15 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       appBar: AppBar(
         title: Text(
           _selectedContactIds != null
-              ? '${_selectedContactIds!.length} Kişiyi Yedekle'
+              ? context.l10n.backup_selected_contacts
+                  .replaceAll('{count}', _selectedContactIds!.length.toString())
               : context.l10n.export_screen_title,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
         ),
         elevation: 0,
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
+        backgroundColor: backgroundColor,
+        iconTheme:
+            IconThemeData(color: isDarkMode ? Colors.white : Colors.black),
       ),
       backgroundColor: backgroundColor,
       body: Column(
@@ -132,7 +134,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           // Ana içerik
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -140,47 +143,48 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                   if (_selectedContactIds != null)
                     _buildInfoCard(
                       icon: Icons.people,
-                      title:
-                          'Seçili ${_selectedContactIds!.length} kişi yedeklenecek',
+                      title: context.l10n.contacts_selected.replaceAll(
+                          '{count}', _selectedContactIds!.length.toString()),
                       color: AppTheme.primaryColor,
                     ),
 
                   // Format seçimi
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Text(
                     context.l10n.export_format,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: textColor,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   _buildFormatSelector(selectedFormat, cardColor, textColor),
 
                   // Hedef seçimi
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Text(
                     'Yedekleme Hedefi',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: textColor,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   _buildDestinationSelector(cardColor, textColor),
 
                   // Premium uyarısı
                   if (needsPremium) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     _buildInfoCard(
                       icon: Icons.warning_amber_rounded,
-                      title: 'Premium gerekli',
-                      subtitle:
-                          'Rehberinizde $contactsCount kişi var, ancak ücretsiz sürüm yalnızca ilk $maxFreeContacts kişiyi dışa aktarmanıza izin verir.',
+                      title: context.l10n.premium_required,
+                      subtitle: context.l10n.premium_limit_message
+                          .replaceAll('{count}', contactsCount.toString())
+                          .replaceAll('{limit}', maxFreeContacts.toString()),
                       color: Colors.orange,
-                      actionText: 'Premium\'a Yükselt',
+                      actionText: context.l10n.premium_button,
                       onAction: () => Navigator.pushNamed(context, '/premium'),
                     ),
                   ],
@@ -191,7 +195,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
 
           // Alt buton bölümü
           Container(
-            padding: const EdgeInsets.all(16.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             decoration: BoxDecoration(
               color: isDarkMode ? AppTheme.darkCardColor : Colors.white,
               boxShadow: [
@@ -213,8 +218,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                       ),
               icon: isExporting
                   ? const SizedBox(
-                      width: 20,
-                      height: 20,
+                      width: 18,
+                      height: 18,
                       child: CircularProgressIndicator(
                         color: Colors.white,
                         strokeWidth: 2,
@@ -233,7 +238,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryColor,
                 foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 50),
+                minimumSize: const Size(double.infinity, 44),
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -255,7 +261,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     VoidCallback? onAction,
   }) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
@@ -266,14 +272,15 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   title,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: color,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -284,23 +291,23 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             Text(
               subtitle,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 color: color.withOpacity(0.8),
               ),
             ),
           ],
           if (actionText != null && onAction != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             TextButton(
               onPressed: onAction,
               style: TextButton.styleFrom(
                 foregroundColor: color,
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                 minimumSize: const Size(0, 0),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: Text(actionText),
+              child: Text(actionText, style: const TextStyle(fontSize: 12)),
             ),
           ],
         ],
@@ -324,15 +331,15 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
               ref.read(selectedFormatProvider.notifier).state = format;
             },
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 children: [
                   Icon(
                     _getFormatIcon(format),
                     color: isSelected ? AppTheme.primaryColor : Colors.grey,
-                    size: 20,
+                    size: 18,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,12 +351,13 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                                 ? FontWeight.bold
                                 : FontWeight.normal,
                             color: textColor,
+                            fontSize: 13,
                           ),
                         ),
                         Text(
                           _getFormatDescription(format, context),
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             color: textColor.withOpacity(0.7),
                           ),
                         ),
@@ -360,7 +368,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                     const Icon(
                       Icons.check_circle,
                       color: AppTheme.primaryColor,
-                      size: 18,
+                      size: 16,
                     ),
                 ],
               ),
@@ -389,7 +397,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             },
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
           child: _buildDestinationOption(
             title: 'Telefona Kaydet',
@@ -421,7 +429,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(8),
@@ -438,7 +446,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             Icon(
               icon,
               color: isSelected ? AppTheme.primaryColor : Colors.grey,
-              size: 24,
+              size: 20,
             ),
             const SizedBox(height: 4),
             Text(
@@ -447,7 +455,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
               style: TextStyle(
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 color: textColor,
-                fontSize: 13,
+                fontSize: 12,
               ),
             ),
           ],

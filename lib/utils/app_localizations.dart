@@ -136,6 +136,54 @@ class AppLocalizations {
   String get excel_desc => translate('excel_desc');
   String get pdf_desc => translate('pdf_desc');
   String get json_desc => translate('json_desc');
+
+  // Dil seçenekleri ile ilgili getter'lar
+  String get language_settings => translate('language_settings');
+  String get system_language => translate('system_language');
+  String get use_system_language => translate('use_system_language');
+
+  // Rehber filtreleme ile ilgili getter'lar
+  String get contact_filtering => translate('contact_filtering');
+  String get include_contacts_without_number =>
+      translate('include_contacts_without_number');
+  String get include_contacts_without_number_desc =>
+      translate('include_contacts_without_number_desc');
+  String get include_numbers_without_name =>
+      translate('include_numbers_without_name');
+  String get include_numbers_without_name_desc =>
+      translate('include_numbers_without_name_desc');
+  String get filters_active => translate('filters_active');
+  String get filtered_contacts => translate('filtered_contacts');
+  String get total_contact_count => translate('total_contact_count');
+
+  // Veri yükleme ve bekletme ile ilgili getter'lar
+  String get loading_contacts => translate('loading_contacts');
+  String get please_wait => translate('please_wait');
+  String get contact_not_found => translate('contact_not_found');
+
+  // Uygulama statüsü ile ilgili getter'lar
+  String get last_update => translate('last_update');
+  String get last_backup => translate('last_backup');
+  String get backup_and_share => translate('backup_and_share');
+
+  // Seçim ile ilgili getter'lar
+  String get select_contacts => translate('select_contacts');
+  String get contacts_selected => translate('contacts_selected');
+  String get backup_selected_contacts => translate('backup_selected_contacts');
+  String get select_all => translate('select_all');
+  String get deselect_all => translate('deselect_all');
+
+  // Tür isimleri
+  String get anonymous_contact => translate('anonymous_contact');
+
+  // Buton ve UI elemanları
+  String get done => translate('done');
+  String get apply => translate('apply');
+  String get home => translate('home');
+  String get my_contacts => translate('my_contacts');
+  String get settings => translate('settings');
+  String get calendar => translate('calendar');
+  String get statistics => translate('statistics');
 }
 
 class _AppLocalizationsDelegate

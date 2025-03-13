@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'screens/home_screen.dart';
 import 'screens/export_screen.dart';
 import 'screens/settings_screen.dart';
@@ -11,6 +12,7 @@ import 'screens/premium_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'theme/app_theme.dart';
 import 'utils/app_localizations.dart';
+import 'providers/localization_provider.dart';
 
 // Premium durum Provider'ı (eski provider ile uyumluluk için)
 final isPremiumProvider = StateProvider<bool>((ref) => false);
@@ -18,9 +20,6 @@ final isPremiumUserProvider = StateProvider<bool>((ref) => false);
 
 // İlk çalıştırma kontrolü Provider'ı
 final isFirstRunProvider = StateProvider<bool>((ref) => true);
-
-// Dil seçenekleri Provider'ı
-final localeProvider = StateProvider<Locale>((ref) => const Locale('tr'));
 
 // Tema Provider'ı
 final themeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
@@ -42,13 +41,6 @@ final supportedLocales = [
   const Locale('fr'), // Fransızca
 ];
 
-// Locale StateController için özel extension
-extension LocaleStateControllerExtension on StateController<Locale> {
-  void setLocale(Locale locale) {
-    state = locale;
-  }
-}
-
 // Tema StateController için özel extension
 extension ThemeStateControllerExtension on StateController<ThemeMode> {
   void toggleTheme() {
@@ -57,7 +49,9 @@ extension ThemeStateControllerExtension on StateController<ThemeMode> {
 }
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // Splash screen'i preserve
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   // Ekran yönünü dikey olarak kilitliyoruz
   await SystemChrome.setPreferredOrientations([
@@ -99,6 +93,9 @@ void main() async {
       child: const MyApp(),
     ),
   );
+
+  // Splash screen'i kaldırıyoruz
+  FlutterNativeSplash.remove();
 }
 
 class MyApp extends ConsumerWidget {
@@ -124,7 +121,6 @@ class MyApp extends ConsumerWidget {
       theme: appTheme.lightTheme,
       darkTheme: appTheme.darkTheme,
       themeMode: themeMode,
-      locale: locale,
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -132,6 +128,7 @@ class MyApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: supportedLocales,
+      locale: locale,
       initialRoute: isFirstRun ? '/onboarding' : '/home',
       routes: {
         '/home': (context) => const HomeScreen(),

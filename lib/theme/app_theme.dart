@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Ana renk: Mavi (sadece vurgu için)
-  static const Color primaryColor = Color(0xFF4285F4); // Google mavi
+  static const Color primaryColor = Color(0xFF1A73E8); // Daha koyu Google mavi
 
   // Koyu tema ana renkleri - Siyah arka plan, beyaz metin
   static const Color darkBackgroundColor = Colors.black; // Tam siyah arka plan

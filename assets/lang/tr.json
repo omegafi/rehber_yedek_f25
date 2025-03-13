@@ -90,5 +90,42 @@
   "csv_desc": "Basit tablo formatı - Excel ve benzeri programlarla uyumlu, sütunlar ve satırlarla düzenlenen veri",
   "excel_desc": "Microsoft Excel formatı - Düzenleme ve filtreleme özellikleriyle zengin veri analizi",
   "pdf_desc": "Yazdırılabilir belge formatı - Tüm sistemlerde aynı görünen, dijital dokümanlara uygun",
-  "json_desc": "Programlanabilir veri formatı - Web ve mobil uygulamalar için yaygın kullanılan veri yapısı"
+  "json_desc": "Programlanabilir veri formatı - Web ve mobil uygulamalar için yaygın kullanılan veri yapısı",
+  
+  "language_settings": "Dil Ayarları",
+  "system_language": "Sistem Dili",
+  "use_system_language": "Cihaz dil ayarlarını kullan",
+  
+  "contact_filtering": "Rehber Filtreleme",
+  "include_contacts_without_number": "Numarası olmayan kişileri dahil et",
+  "include_contacts_without_number_desc": "Telefon numarası olmayan kişileri yedeklemeye dahil et",
+  "include_numbers_without_name": "İsmi olmayan numaraları dahil et",
+  "include_numbers_without_name_desc": "İsim bilgisi olmayan telefon numaralarını yedeklemeye dahil et",
+  "filters_active": "Filtreler aktif",
+  "filtered_contacts": "Filtrelenmiş Kişi",
+  "total_contact_count": "Toplam {count} kişiden",
+  
+  "loading_contacts": "Kişiler Yükleniyor",
+  "please_wait": "Lütfen bekleyin...",
+  "contact_not_found": "Kişi bulunamadı",
+  
+  "last_update": "Güncelleme: {date}",
+  "last_backup": "Yedekleme: {date}",
+  "backup_and_share": "Rehberi Yedekle ve Paylaş",
+  
+  "select_contacts": "Kişileri seçin",
+  "contacts_selected": "{count} kişi seçildi",
+  "backup_selected_contacts": "{count} Kişiyi Yedekle",
+  "select_all": "Tümünü Seç",
+  "deselect_all": "Tümünü Kaldır",
+  
+  "anonymous_contact": "İsimsiz Kişi",
+  
+  "done": "Tamam",
+  "apply": "Uygula",
+  "home": "Ana Sayfa",
+  "my_contacts": "Kişilerim",
+  "settings": "Ayarlar",
+  "calendar": "Takvim",
+  "statistics": "İstatistikler"
 } 

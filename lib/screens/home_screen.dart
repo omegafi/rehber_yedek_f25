@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
 import '../models/contact_format.dart';
 import '../services/contacts_service.dart';
 import '../services/file_sharing_service.dart';
@@ -15,6 +14,8 @@ import 'export_screen.dart';
 import 'import_screen.dart';
 import 'settings_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 // Rehber izin durumu sağlayıcısı - main.dart'tan geliyor
 import '../main.dart' show contactsPermissionProvider;
@@ -128,6 +129,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Uygulama başladığında izin kontrolü
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndRequestPermissionIfNeeded();
+      _loadFilterSettings(); // Filtreleme ayarlarını yükle
     });
 
     // Arama kontrolü
@@ -275,9 +277,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: AppBar(
         title: Text(
           _selectedIndex == 0 ? context.l10n.home_screen_title : 'Kişilerim',
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
         ),
-        backgroundColor: AppTheme.primaryColor,
+        backgroundColor: backgroundColor,
         elevation: 0,
         actions: _selectedIndex == 1
             ? [
@@ -420,21 +422,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Premium butonu (sağ üstte)
-          Align(
-            alignment: Alignment.topRight,
-            child: _buildPremiumButton(isDarkMode),
-          ),
+          // Premium butonu (premium kullanıcıları için gösterme)
+          if (!isPremium)
+            Align(
+              alignment: Alignment.topRight,
+              child: _buildPremiumButton(context),
+            ),
 
           // Rehber Bilgileriniz (yeniden tasarlanmış)
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: cardColor,
+              color: isDarkMode
+                  ? Color(0xFF1E1E1E)
+                  : Color(
+                      0xFFFCE4EC), // Dark tema için koyu, light tema için açık pembe
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -449,8 +455,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.1),
+                        color: Colors.white,
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Icon(
                         Icons.contacts,
@@ -468,7 +481,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: textColor,
+                              color: isDarkMode ? Colors.white : Colors.black,
                             ),
                           ),
                           if (!includeContactsWithoutNumber ||
@@ -479,15 +492,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 children: [
                                   Icon(
                                     Icons.filter_list,
-                                    size: 12,
-                                    color: Colors.amber,
+                                    size: 14,
+                                    color: AppTheme.primaryColor,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     'Filtreler aktif',
                                     style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.amber,
+                                      fontSize: 14,
+                                      color: AppTheme.primaryColor,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -507,23 +520,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         decoration: BoxDecoration(
                           color: (!includeContactsWithoutNumber ||
                                   !includeNumbersWithoutName)
-                              ? Colors.amber.withOpacity(0.2)
+                              ? AppTheme.primaryColor.withOpacity(0.2)
                               : Colors.transparent,
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: (!includeContactsWithoutNumber ||
                                     !includeNumbersWithoutName)
-                                ? Colors.amber
+                                ? AppTheme.primaryColor
                                 : Colors.grey.withOpacity(0.3),
                             width: 1,
                           ),
                         ),
                         child: Icon(
                           Icons.filter_alt,
-                          size: 18,
+                          size: 20,
                           color: (!includeContactsWithoutNumber ||
                                   !includeNumbersWithoutName)
-                              ? Colors.amber
+                              ? AppTheme.primaryColor
                               : Colors.grey,
                         ),
                       ),
@@ -550,9 +563,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color:
-                                        AppTheme.primaryColor.withOpacity(0.1),
+                                    color: Colors.white,
                                     borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
                                   child: AnimatedCounter(
                                     count:
@@ -577,7 +596,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
-                                          color: textColor,
+                                          color: isDarkMode
+                                              ? Colors.white
+                                              : Colors.black,
                                         ),
                                       ),
                                       if (isFiltered)
@@ -585,7 +606,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           'Toplam $totalCount kişiden',
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: textColor.withOpacity(0.7),
+                                            color: isDarkMode
+                                                ? Colors.white70
+                                                : Colors.black.withOpacity(0.7),
                                           ),
                                         ),
                                     ],
@@ -604,12 +627,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   if (!includeContactsWithoutNumber)
                                     _buildFilterChip(
                                       label: 'Numarasız kişiler hariç',
-                                      color: Colors.amber,
+                                      color: AppTheme.primaryColor,
                                     ),
                                   if (!includeNumbersWithoutName)
                                     _buildFilterChip(
                                       label: 'İsimsiz numaralar hariç',
-                                      color: Colors.amber,
+                                      color: AppTheme.primaryColor,
                                     ),
                                 ],
                               ),
@@ -621,8 +644,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color:
-                                      const Color(0xFF8A2BE2).withOpacity(0.1),
+                                  color: isDarkMode
+                                      ? const Color(0xFF8A2BE2).withOpacity(0.3)
+                                      : const Color(0xFF8A2BE2)
+                                          .withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
@@ -646,7 +671,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                             'Ücretsiz sürümde yalnızca $maxFreeContacts kişiyi yedekleyebilirsiniz',
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: textColor,
+                                              color: isDarkMode
+                                                  ? Colors.white
+                                                  : Colors.black,
                                             ),
                                           ),
                                           const SizedBox(height: 2),
@@ -654,7 +681,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                             'Premium\'a geçerek sınırsız kişi yedekleyebilirsiniz',
                                             style: TextStyle(
                                               fontSize: 11,
-                                              color: textColor.withOpacity(0.7),
+                                              color: isDarkMode
+                                                  ? Colors.white70
+                                                  : Colors.black
+                                                      .withOpacity(0.7),
                                             ),
                                           ),
                                         ],
@@ -676,14 +706,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     Icon(
                                       Icons.update,
                                       size: 12,
-                                      color: textColor.withOpacity(0.5),
+                                      color: isDarkMode
+                                          ? Colors.white60
+                                          : Colors.black.withOpacity(0.5),
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
                                       'Güncelleme: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: textColor.withOpacity(0.5),
+                                        color: isDarkMode
+                                            ? Colors.white60
+                                            : Colors.black.withOpacity(0.5),
                                       ),
                                     ),
                                   ],
@@ -695,14 +729,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       Icon(
                                         Icons.backup,
                                         size: 12,
-                                        color: textColor.withOpacity(0.5),
+                                        color: Colors.black.withOpacity(0.5),
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         'Yedekleme: ${lastBackupDate.day}/${lastBackupDate.month}/${lastBackupDate.year}',
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: textColor.withOpacity(0.5),
+                                          color: Colors.black.withOpacity(0.5),
                                         ),
                                       ),
                                     ],
@@ -722,26 +756,112 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 foregroundColor: Colors.white,
                                 minimumSize: const Size(double.infinity, 48),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                             ),
                           ],
                         );
                       },
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
+                      loading: () => Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: AnimatedCounter(
+                              count: 0,
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Kişiler Yükleniyor',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDarkMode
+                                        ? Colors.white
+                                        : Colors.black,
+                                  ),
+                                ),
+                                Text(
+                                  'Lütfen bekleyin...',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isDarkMode
+                                        ? Colors.white70
+                                        : Colors.black.withOpacity(0.7),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                       error: (error, stack) => Text(
                         'Hata: $error',
-                        style: TextStyle(color: textColor),
+                        style: TextStyle(color: Colors.black),
                       ),
                     );
                   },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
+                  loading: () => Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: AnimatedCounter(
+                          count: 0,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Kişiler Yükleniyor',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isDarkMode ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            Text(
+                              'Lütfen bekleyin...',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                   error: (error, stack) => Text(
                     'Hata: $error',
-                    style: TextStyle(color: textColor),
+                    style: TextStyle(color: Colors.black),
                   ),
                 ),
               ],
@@ -825,7 +945,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             if (filteredContacts.isEmpty) {
               return Center(
                 child: Text(
-                  'Kişi bulunamadı',
+                  context.l10n.contact_not_found,
                   style: TextStyle(
                     color: textColor,
                     fontSize: 16,
@@ -844,13 +964,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 return Card(
                   color: cardColor,
                   elevation: 0,
+                  margin: const EdgeInsets.symmetric(vertical: 2),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     side: BorderSide(
-                      color: isDarkMode
-                          ? AppTheme.darkDividerColor
-                          : AppTheme.lightDividerColor,
-                      width: 1,
+                      color: isSelected
+                          ? Color(0xFF1A73E8)
+                          : isDarkMode
+                              ? AppTheme.darkDividerColor
+                              : AppTheme.lightDividerColor,
+                      width: isSelected ? 2.0 : 0.5,
                     ),
                   ),
                   child: CheckboxListTile(
@@ -873,7 +996,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       _getDisplayName(contact),
                       style: TextStyle(
                         color: textColor,
-                        fontWeight: FontWeight.w500,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.w500,
+                        fontSize: 14,
                       ),
                     ),
                     subtitle: contact.phones.isNotEmpty
@@ -881,26 +1006,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             contact.phones.first.number,
                             style: TextStyle(
                               color: textColor.withOpacity(0.7),
-                              fontSize: 13,
+                              fontSize: 12,
                             ),
                           )
                         : null,
                     secondary: CircleAvatar(
                       backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                      radius: 14,
                       child: Text(
                         _getInitials(contact),
                         style: TextStyle(
                           color: AppTheme.primaryColor,
                           fontWeight: FontWeight.bold,
+                          fontSize: 12,
                         ),
                       ),
                     ),
                     activeColor: AppTheme.primaryColor,
                     checkColor: Colors.white,
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+                      horizontal: 8,
+                      vertical: 4,
                     ),
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    controlAffinity: ListTileControlAffinity.trailing,
+                    tileColor: cardColor,
                   ),
                 );
               },
@@ -1009,50 +1140,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildPremiumButton(bool isDarkMode) {
-    final isPremium = ref.watch(isPremiumProvider);
-
+  Widget _buildPremiumButton(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       width: double.infinity,
       child: InkWell(
         onTap: () => Navigator.pushNamed(context, '/premium'),
-        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFF4CAF50), // Yeşil
-                const Color(0xFF2E7D32), // Koyu yeşil
-              ],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF4CAF50).withOpacity(0.3),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            color: AppTheme.primaryColor.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.primaryColor),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.workspace_premium,
-                color: Colors.white,
-                size: 20,
+                color: AppTheme.primaryColor,
+                size: 24,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Text(
-                isPremium ? 'Premium Aktif' : 'Premium\'a Yükselt',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                context.l10n.premium_button,
+                style: TextStyle(
+                  color: AppTheme.primaryColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -1064,26 +1180,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildFilterChip({required String label, required Color color}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: AppTheme.primaryColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             Icons.filter_alt_outlined,
-            size: 10,
-            color: color,
+            size: 12,
+            color: AppTheme.primaryColor,
           ),
-          const SizedBox(width: 3),
+          const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 10,
-              color: color,
+              fontSize: 12,
+              color: AppTheme.primaryColor,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -1101,97 +1217,158 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Rehber Filtreleme',
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.bold,
+      builder: (context) => Dialog(
+        insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: isDarkMode
+                ? Color(0xFF1E1E1E)
+                : Color(
+                    0xFFFCE4EC), // Dark tema için koyu, light tema için açık pembe
+            borderRadius: BorderRadius.circular(20),
+          ),
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0, left: 8.0),
+                child: Text(
+                  'Rehber Filtreleme',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
+              ),
+              Divider(
+                  height: 1,
+                  color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
+              const SizedBox(height: 16),
+
+              // Numarası olmayan kişileri dahil etme
+              StatefulBuilder(
+                builder: (context, setState) => SwitchListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                  title: Text(
+                    'Numarası olmayan kişileri dahil et',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Telefon numarası olmayan kişileri yedeklemeye dahil et',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                  value: ref.read(includeContactsWithoutNumberProvider),
+                  onChanged: (value) async {
+                    ref
+                        .read(includeContactsWithoutNumberProvider.notifier)
+                        .state = value;
+
+                    // Değişikliği kaydet
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool(
+                        'include_contacts_without_number', value);
+
+                    setState(() {});
+                  },
+                  activeColor: AppTheme.primaryColor,
+                ),
+              ),
+
+              Divider(
+                  height: 1,
+                  color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
+
+              // İsmi olmayan numaraları dahil etme
+              StatefulBuilder(
+                builder: (context, setState) => SwitchListTile(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                  title: Text(
+                    'İsmi olmayan numaraları dahil et',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'İsim bilgisi olmayan telefon numaralarını yedeklemeye dahil et',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                  value: ref.read(includeNumbersWithoutNameProvider),
+                  onChanged: (value) async {
+                    ref.read(includeNumbersWithoutNameProvider.notifier).state =
+                        value;
+
+                    // Değişikliği kaydet
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('include_numbers_without_name', value);
+
+                    setState(() {});
+                  },
+                  activeColor: AppTheme.primaryColor,
+                ),
+              ),
+
+              Divider(
+                  height: 1,
+                  color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
+              const SizedBox(height: 16),
+
+              // Tamam butonu
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Tamam',
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Numarası olmayan kişileri dahil etme
-            StatefulBuilder(
-              builder: (context, setState) => SwitchListTile(
-                title: Text(
-                  'Numarası olmayan kişileri dahil et',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: textColor,
-                  ),
-                ),
-                subtitle: Text(
-                  'Telefon numarası olmayan kişileri yedeklemeye dahil et',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: textColor.withOpacity(0.7),
-                  ),
-                ),
-                value: ref.read(includeContactsWithoutNumberProvider),
-                onChanged: (value) async {
-                  ref
-                      .read(includeContactsWithoutNumberProvider.notifier)
-                      .state = value;
-
-                  // Değişikliği kaydet
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setBool('include_contacts_without_number', value);
-
-                  setState(() {});
-                },
-                activeColor: AppTheme.primaryColor,
-              ),
-            ),
-
-            // İsmi olmayan numaraları dahil etme
-            StatefulBuilder(
-              builder: (context, setState) => SwitchListTile(
-                title: Text(
-                  'İsmi olmayan numaraları dahil et',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: textColor,
-                  ),
-                ),
-                subtitle: Text(
-                  'İsim bilgisi olmayan telefon numaralarını yedeklemeye dahil et',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: textColor.withOpacity(0.7),
-                  ),
-                ),
-                value: ref.read(includeNumbersWithoutNameProvider),
-                onChanged: (value) async {
-                  ref.read(includeNumbersWithoutNameProvider.notifier).state =
-                      value;
-
-                  // Değişikliği kaydet
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setBool('include_numbers_without_name', value);
-
-                  setState(() {});
-                },
-                activeColor: AppTheme.primaryColor,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Tamam',
-              style: TextStyle(
-                color: AppTheme.primaryColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
       ),
     );
+  }
+
+  // Filtreleme ayarlarını yükleme fonksiyonu
+  Future<void> _loadFilterSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final includeContactsWithoutNumber =
+        prefs.getBool('include_contacts_without_number');
+    final includeNumbersWithoutName =
+        prefs.getBool('include_numbers_without_name');
+
+    if (includeContactsWithoutNumber != null) {
+      ref.read(includeContactsWithoutNumberProvider.notifier).state =
+          includeContactsWithoutNumber;
+    }
+
+    if (includeNumbersWithoutName != null) {
+      ref.read(includeNumbersWithoutNameProvider.notifier).state =
+          includeNumbersWithoutName;
+    }
   }
 }
 

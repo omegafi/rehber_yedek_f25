@@ -7,6 +7,7 @@ import '../screens/premium_screen.dart';
 import '../screens/onboarding_screen.dart';
 import '../utils/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../providers/localization_provider.dart';
 
 // Numarası olmayan kişileri dahil etme durumu
 final includeContactsWithoutNumberProvider = StateProvider<bool>((ref) => true);
@@ -42,11 +43,12 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           context.l10n.settings_screen_title,
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),
         ),
-        backgroundColor: primaryColor,
+        backgroundColor: backgroundColor,
         elevation: 0,
-        iconTheme: IconThemeData(color: Colors.white),
+        iconTheme:
+            IconThemeData(color: isDarkMode ? Colors.white : Colors.black),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -59,12 +61,7 @@ class SettingsScreen extends ConsumerWidget {
             color: primaryColor,
             textColor: textColor,
             child: InkWell(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const LanguageSelectionScreen(),
-                ),
-              ),
+              onTap: () => _showLanguageSelectionDialog(context, ref),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Row(
@@ -247,6 +244,55 @@ class SettingsScreen extends ConsumerWidget {
 
           const SizedBox(height: 16),
 
+          // Premium Seçeneği
+          _buildSection(
+            context,
+            title: context.l10n.premium_title,
+            icon: Icons.workspace_premium,
+            color: AppTheme.primaryColor,
+            textColor: textColor,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    'Premium\'a Yükselt',
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Sınırsız kişi yedekleme ve daha fazla özellik',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: textColor.withOpacity(0.7),
+                    ),
+                  ),
+                  trailing: Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: textColor.withOpacity(0.7),
+                  ),
+                  onTap: () {
+                    Navigator.pushNamed(context, '/premium');
+                  },
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Premium üyelik ile tüm kişilerinizi yedekleyebilir ve ek özelliklerden faydalanabilirsiniz.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: textColor.withOpacity(0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
           // Eğitim ve Yardım
           _buildSection(
             context,
@@ -352,32 +398,57 @@ class SettingsScreen extends ConsumerWidget {
     required Color textColor,
     required Widget child,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                ),
-              ),
-            ],
+        color: isDarkMode
+            ? Color(0xFF1E1E1E)
+            : Color(
+                0xFFFCE4EC), // Dark tema için koyu, light tema için açık pembe
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(height: 16),
-          child,
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            child,
+          ],
+        ),
       ),
     );
   }
@@ -432,233 +503,149 @@ class SettingsScreen extends ConsumerWidget {
     final isDarkMode = ref.read(themeProvider) == ThemeMode.dark;
     await prefs.setBool('dark_theme', isDarkMode);
   }
-}
 
-// Dil Seçim Ekranı
-class LanguageSelectionScreen extends ConsumerWidget {
-  const LanguageSelectionScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  // Dil seçim dialogunu gösteren metodu düzenliyorum
+  void _showLanguageSelectionDialog(BuildContext context, WidgetRef ref) {
     final currentLocale = ref.watch(localeProvider);
-    final themeMode = ref.watch(themeProvider);
-    final isDarkMode = themeMode == ThemeMode.dark;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    final backgroundColor = isDarkMode
-        ? AppTheme.darkBackgroundColor
-        : AppTheme.lightBackgroundColor;
-    final textColor =
-        isDarkMode ? AppTheme.darkTextColor : AppTheme.lightTextColor;
-    final primaryColor = AppTheme.primaryColor;
-
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        title: Text(
-          context.l10n.change_language,
-          style: const TextStyle(color: Colors.white),
-        ),
-        backgroundColor: primaryColor,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Column(
-        children: [
-          // Sistem dili seçeneği
-          _buildLanguageOption(
-            context,
-            ref,
-            'system',
-            'Sistem Dili',
-            'Cihaz dil ayarlarını kullan',
-            currentLocale,
-            isDarkMode,
-            primaryColor,
-            textColor,
-            isSystem: true,
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-
-          // Dil seçenekleri
-          Expanded(
-            child: ListView(
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: isDarkMode
+                  ? Color(0xFF1E1E1E)
+                  : Color(
+                      0xFFFCE4EC), // Dark tema için koyu, light tema için açık pembe
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildLanguageOption(
-                  context,
-                  ref,
-                  'en',
-                  context.l10n.english,
-                  'English',
-                  currentLocale,
-                  isDarkMode,
-                  primaryColor,
-                  textColor,
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0, left: 8.0),
+                  child: Text(
+                    'Dil Ayarları',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
                 ),
+                Divider(
+                    height: 1,
+                    color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
+                _buildLanguageOption(context, ref, 'Sistem Dili', 'system',
+                    currentLocale, 'Cihaz dil ayarlarını kullan'),
+                Divider(
+                    height: 1,
+                    color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
                 _buildLanguageOption(
-                  context,
-                  ref,
-                  'tr',
-                  context.l10n.turkish,
-                  'Türkçe',
-                  currentLocale,
-                  isDarkMode,
-                  primaryColor,
-                  textColor,
-                ),
+                    context, ref, 'English', 'en', currentLocale, 'İngilizce'),
+                Divider(
+                    height: 1,
+                    color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
                 _buildLanguageOption(
-                  context,
-                  ref,
-                  'es',
-                  context.l10n.spanish,
-                  'Español',
-                  currentLocale,
-                  isDarkMode,
-                  primaryColor,
-                  textColor,
-                ),
+                    context, ref, 'Türkçe', 'tr', currentLocale, 'Türkçe'),
+                Divider(
+                    height: 1,
+                    color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
                 _buildLanguageOption(
-                  context,
-                  ref,
-                  'ja',
-                  context.l10n.japanese,
-                  '日本語',
-                  currentLocale,
-                  isDarkMode,
-                  primaryColor,
-                  textColor,
-                ),
+                    context, ref, 'Español', 'es', currentLocale, 'İspanyolca'),
+                Divider(
+                    height: 1,
+                    color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
                 _buildLanguageOption(
-                  context,
-                  ref,
-                  'de',
-                  'Almanca',
-                  'Deutsch',
-                  currentLocale,
-                  isDarkMode,
-                  primaryColor,
-                  textColor,
-                ),
-                _buildLanguageOption(
-                  context,
-                  ref,
-                  'fr',
-                  'Fransızca',
-                  'Français',
-                  currentLocale,
-                  isDarkMode,
-                  primaryColor,
-                  textColor,
+                    context, ref, '日本語', 'ja', currentLocale, 'Japonca'),
+                Divider(
+                    height: 1,
+                    color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'İptal',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-
-          // İptal butonu
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextButton(
-              onPressed: () => Navigator.pop(context),
-              style: TextButton.styleFrom(
-                foregroundColor: primaryColor,
-                minimumSize: const Size(double.infinity, 44),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(color: primaryColor),
-                ),
-              ),
-              child: Text(context.l10n.cancel),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  // Dil seçenek widget'ı
-  Widget _buildLanguageOption(
-    BuildContext context,
-    WidgetRef ref,
-    String code,
-    String name,
-    String displayName,
-    Locale currentLocale,
-    bool isDarkMode,
-    Color primaryColor,
-    Color textColor, {
-    bool isSystem = false,
-  }) {
-    final isSelected = isSystem
-        ? false // Sistem dili için özel kontrol
-        : currentLocale.languageCode == code;
+  Widget _buildLanguageOption(BuildContext context, WidgetRef ref, String title,
+      String localeCode, Locale currentLocale, String subtitle) {
+    final isSelected = currentLocale.languageCode == localeCode;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return InkWell(
       onTap: () async {
-        if (isSystem) {
-          // Sistem dili seçildiğinde yapılacak işlemler
-          // Şimdilik sadece geri dönelim
-          Navigator.pop(context);
-          return;
-        }
-
         // Dili değiştir
-        ref.read(localeProvider.notifier).state = Locale(code);
+        ref.read(localeProvider.notifier).state = Locale(localeCode);
 
         // Değişikliği SharedPreferences'a kaydet
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('language_code', code);
+        await prefs.setString('language_code', localeCode);
 
         if (context.mounted) {
-          Navigator.pop(context);
+          Navigator.of(context).pop();
         }
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        decoration: BoxDecoration(
-          color:
-              isSelected ? primaryColor.withOpacity(0.1) : Colors.transparent,
-          border: Border(
-            bottom: BorderSide(
-              color: isDarkMode ? Colors.white10 : Colors.black12,
-              width: 0.5,
-            ),
-          ),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: TextStyle(
-                    color: isSelected ? primaryColor : textColor,
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 16,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  displayName,
-                  style: TextStyle(
-                    color: textColor.withOpacity(0.7),
-                    fontSize: 14,
+                  SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             if (isSelected)
               Container(
-                width: 24,
-                height: 24,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: primaryColor,
+                  color: Color(0xFFD32F2F), // Kırmızı onay işareti
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check,
                   color: Colors.white,
-                  size: 16,
+                  size: 20,
                 ),
               ),
           ],

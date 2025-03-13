@@ -11,20 +11,20 @@
   "premium_button": "Upgrade to Premium",
   "premium_active": "Your premium subscription is active!",
   "premium_required": "Premium Required",
-  "premium_limit_message": "You have {count} contacts, but free version only allows backup of first {limit} contacts.",
+  "premium_limit_message": "You have {count} contacts, but the free version only allows backup of the first {limit} contacts.",
   "premium_upgrade_message": "Upgrade to premium to backup all your contacts.",
   
   "backup_all_contacts": "Backup all contacts",
-  "no_ads": "No ads experience",
+  "no_ads": "Ad-free experience",
   "priority_support": "Priority support",
   "auto_backup": "Automatic backup",
-  "lifetime_premium": "One-time payment for lifetime premium!",
+  "lifetime_premium": "Lifetime premium with one-time payment!",
   
   "theme_title": "Appearance",
   "dark_theme": "Dark Theme",
-  "dark_theme_subtitle_on": "Dark theme active. Easier on the eyes, saves battery.",
-  "dark_theme_subtitle_off": "Light theme active. Brighter and traditional interface.",
-  "dark_theme_hint": "Dark theme makes your eyes less tired in low light environments.",
+  "dark_theme_subtitle_on": "Dark theme is on. Easier on eyes, saves battery.",
+  "dark_theme_subtitle_off": "Light theme is on. Brighter and traditional interface.",
+  "dark_theme_hint": "Dark theme helps reduce eye strain in low-light conditions.",
   
   "language_title": "Language Options",
   "current_language": "Current language: {language}",
@@ -35,9 +35,9 @@
   "japanese": "Japanese",
   
   "guide_title": "Guide",
-  "show_tutorial": "Show Tutorial",
+  "show_tutorial": "Show Tutorial Screen",
   
-  "contacts_title": "Your Contacts",
+  "contacts_title": "Your Contact Information",
   "total_contacts": "Total {count} contacts",
   "view_all_contacts": "View all contacts",
   "search_contacts": "Search contacts...",
@@ -46,25 +46,25 @@
   "quick_actions": "Quick Actions",
   "backup_contacts": "Backup Contacts",
   "backup_contacts_desc": "Backup your contacts in different formats",
-  "restore_contacts": "Restore Contacts",
-  "restore_contacts_desc": "Restore your previously backed up contacts",
+  "restore_contacts": "Restore Backup",
+  "restore_contacts_desc": "Restore previously backed up contacts",
   
   "export_format": "Export Format",
   "share": "Share",
   "exporting": "Processing...",
   "export_and_share": "Export and Share",
-  "export_success": "Export Successful",
-  "export_error": "Export Error",
+  "export_success": "Export successful",
+  "export_error": "Export error",
   "export_success_message": "Your contacts have been successfully exported and shared.",
   
   "permission_required": "Permission Required",
-  "contacts_permission_message": "We need permission to access your contacts to backup or restore them.",
+  "contacts_permission_message": "You need to grant contacts permission to backup or restore your contacts.",
   "grant_permission": "Grant Permission",
   "open_settings": "Open Settings",
   
-  "about_app": "About Application",
+  "about_app": "About App",
   "app_version": "Version: 1.0.0",
-  "app_description": "This application allows you to backup and restore your contacts. You can backup your contacts in vCard, CSV, Excel, PDF and JSON formats. Also, you can send your backups to email or cloud storage services.",
+  "app_description": "This app allows you to backup and restore your contacts. You can backup your contacts in vCard, CSV, Excel, PDF, and JSON formats. You can also send your backups to email or cloud storage services.",
   
   "contact_info": "Contact Information",
   "copyright": "Copyright © 2025",
@@ -74,7 +74,7 @@
   "onboarding_title_1": "Welcome to Contact Backup",
   "onboarding_subtitle_1": "The safest way to backup your contacts",
   "onboarding_title_2": "Multiple Export Formats",
-  "onboarding_subtitle_2": "Export your contacts in different formats like vCard, CSV, Excel, PDF and JSON",
+  "onboarding_subtitle_2": "Export your contacts in various formats like vCard, CSV, Excel, PDF, and JSON",
   
   "next": "Next",
   "skip": "Skip",
@@ -86,9 +86,46 @@
   "ok": "OK",
   "close": "Close",
   
-  "vcard_desc": "Contact format compatible with all devices",
-  "csv_desc": "Simple table format - Compatible with Excel and similar programs, data organized in columns and rows",
+  "vcard_desc": "Universal contact format compatible with all devices",
+  "csv_desc": "Simple table format - Compatible with Excel and similar programs, data arranged in columns and rows",
   "excel_desc": "Microsoft Excel format - Rich data analysis with editing and filtering capabilities",
-  "pdf_desc": "Printable document format - Looks the same on all systems, suitable for digital documents",
-  "json_desc": "Programmable data format - Widely used data structure for web and mobile applications"
+  "pdf_desc": "Printable document format - Looks the same across all systems, suitable for digital documents",
+  "json_desc": "Programmable data format - Common data structure used for web and mobile applications",
+  
+  "language_settings": "Language Settings",
+  "system_language": "System Language",
+  "use_system_language": "Use device language settings",
+  
+  "contact_filtering": "Contact Filtering",
+  "include_contacts_without_number": "Include contacts without number",
+  "include_contacts_without_number_desc": "Include contacts without phone numbers in the backup",
+  "include_numbers_without_name": "Include numbers without name",
+  "include_numbers_without_name_desc": "Include phone numbers without name information in the backup",
+  "filters_active": "Filters active",
+  "filtered_contacts": "Filtered Contacts",
+  "total_contact_count": "Out of {count} total contacts",
+  
+  "loading_contacts": "Loading Contacts",
+  "please_wait": "Please wait...",
+  "contact_not_found": "Contact not found",
+  
+  "last_update": "Updated: {date}",
+  "last_backup": "Backup: {date}",
+  "backup_and_share": "Backup and Share Contacts",
+  
+  "select_contacts": "Select contacts",
+  "contacts_selected": "{count} contacts selected",
+  "backup_selected_contacts": "Backup {count} Contacts",
+  "select_all": "Select All",
+  "deselect_all": "Deselect All",
+  
+  "anonymous_contact": "Anonymous Contact",
+  
+  "done": "Done",
+  "apply": "Apply",
+  "home": "Home",
+  "my_contacts": "My Contacts",
+  "settings": "Settings",
+  "calendar": "Calendar",
+  "statistics": "Statistics"
 } 
