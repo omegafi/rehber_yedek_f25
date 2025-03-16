@@ -8,15 +8,15 @@ enum ContactFormat {
   String get displayName {
     switch (this) {
       case ContactFormat.vCard:
-        return 'vCard (.vcf)';
+        return 'vCard';
       case ContactFormat.csv:
-        return 'CSV (.csv)';
+        return 'CSV';
       case ContactFormat.excel:
-        return 'Excel (.xlsx)';
+        return 'Excel';
       case ContactFormat.pdf:
-        return 'PDF (.pdf)';
+        return 'PDF';
       case ContactFormat.json:
-        return 'JSON (.json)';
+        return 'JSON';
     }
   }
 

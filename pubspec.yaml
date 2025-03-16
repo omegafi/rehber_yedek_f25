@@ -40,6 +40,7 @@ dependencies:
   permission_handler: ^11.0.0
   flutter_riverpod: ^2.4.0
   path_provider: ^2.1.1
+  path: ^1.8.3
   intl: ^0.18.1
   share_plus: ^7.1.0
   file_picker: ^5.5.0
@@ -57,6 +58,9 @@ dependencies:
   flutter_native_splash: ^2.4.0
   smooth_page_indicator: ^1.1.0
   in_app_purchase: ^3.1.11 # Satın alma işlemleri için
+  flutter_local_notifications: ^16.0.0  # Bildirim işlemleri için
+  # flutter_native_timezone: ^2.0.0  # Zaman dilimi işlemleri için - geçici olarak devre dışı bırakıldı
+  flutter_share: ^2.0.0  # Paylaşım işlemleri için
 
 dev_dependencies:
   flutter_test:

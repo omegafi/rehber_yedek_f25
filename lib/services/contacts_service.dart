@@ -49,7 +49,19 @@ class ContactsManager {
   DateTime? _lastFetchTime;
 
   // Performans için önbellek süresini tanımla (saniye cinsinden)
-  final int _cacheExpirationSeconds = 60; // 1 dakika
+  final int _cacheExpirationSeconds = 300; // 5 dakika (daha uzun süre)
+
+  // Kişilerin yüklenme durumu
+  bool _isLoadingContacts = false;
+  Completer<List<Contact>>? _contactsCompleter;
+
+  // Önbelleği temizle
+  void clearCache() {
+    _cachedContacts = null;
+    _lastFetchTime = null;
+    _contactsCompleter = null;
+    debugPrint('Kişi önbelleği temizlendi');
+  }
 
   // Kişiler iznini iste ve durumunu kontrol et
   Future<PermissionStatus> requestContactPermission() async {
@@ -93,37 +105,67 @@ class ContactsManager {
       final difference = now.difference(_lastFetchTime!).inSeconds;
       if (difference < _cacheExpirationSeconds) {
         debugPrint(
-            'Önbelleğe alınmış kişiler kullanılıyor (${_cachedContacts!.length} kişi)');
+            'Önbellekten ${_cachedContacts!.length} kişi alındı (${difference}s)');
         return _cachedContacts!;
       }
     }
 
-    debugPrint('Rehberden kişiler alınıyor...');
-    try {
-      // UI Blokajını önlemek için işlemin başladığını belirt
-      debugPrint('Kişiler yükleniyor, bu işlem biraz zaman alabilir...');
+    // Eğer zaten yükleme devam ediyorsa, aynı Future'ı döndür
+    if (_isLoadingContacts && _contactsCompleter != null) {
+      debugPrint('Kişiler zaten yükleniyor, mevcut işlem bekleniyor');
+      return _contactsCompleter!.future;
+    }
 
-      // Performans için fotoğraf ve minyatürleri getirme
-      final contacts = await FlutterContacts.getContacts(
-        withProperties: true,
-        withPhoto: false, // Fotoğrafları getirme - performans için önemli
-        withThumbnail:
-            false, // Küçük resimleri getirme - performans için önemli
-        sorted: true,
-      );
+    // Yeni bir yükleme işlemi başlat
+    _isLoadingContacts = true;
+    _contactsCompleter = Completer<List<Contact>>();
 
-      // Kişi sayısını logla
-      debugPrint('Toplam kişi sayısı: ${contacts.length}');
-
+    // Arka planda kişileri yükle
+    _loadContactsInBackground().then((contacts) {
       // Önbelleğe kaydet
       _cachedContacts = contacts;
       _lastFetchTime = now;
 
-      debugPrint('${contacts.length} kişi başarıyla getirildi');
+      // Completer'ı tamamla
+      if (!_contactsCompleter!.isCompleted) {
+        _contactsCompleter!.complete(contacts);
+      }
+
+      _isLoadingContacts = false;
+      debugPrint('${contacts.length} kişi yüklendi ve önbelleğe alındı');
+    }).catchError((error) {
+      debugPrint('Kişiler yüklenirken hata: $error');
+      if (!_contactsCompleter!.isCompleted) {
+        _contactsCompleter!.completeError(error);
+      }
+      _isLoadingContacts = false;
+    });
+
+    return _contactsCompleter!.future;
+  }
+
+  // Kişileri arka planda yükle
+  Future<List<Contact>> _loadContactsInBackground() async {
+    try {
+      // Paralel işlem için compute kullanılabilir, ancak şimdilik direkt yükleyelim
+      debugPrint('Kişiler yükleniyor...');
+      final stopwatch = Stopwatch()..start();
+
+      // Tüm kişileri yükle (thumbnail ve fotoğraflar dahil)
+      List<Contact> contacts = await FlutterContacts.getContacts(
+        withProperties: true,
+        withThumbnail: true,
+        withPhoto:
+            false, // Fotoğrafları daha sonra talep edildiğinde yükleyeceğiz (performans için)
+        sorted: true,
+      );
+
+      stopwatch.stop();
+      debugPrint('Kişiler ${stopwatch.elapsedMilliseconds}ms içinde yüklendi');
       return contacts;
     } catch (e) {
-      debugPrint('Kişileri getirme hatası: $e');
-      return [];
+      debugPrint('Kişiler yüklenirken hata: $e');
+      rethrow;
     }
   }
 

@@ -8,12 +8,16 @@ import '../screens/onboarding_screen.dart';
 import '../utils/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../providers/localization_provider.dart';
+import '../services/contacts_service.dart'; // ContactsManager için import eklendi
 
 // Numarası olmayan kişileri dahil etme durumu
 final includeContactsWithoutNumberProvider = StateProvider<bool>((ref) => true);
 
 // İsmi olmayan numaraları dahil etme durumu
 final includeNumbersWithoutNameProvider = StateProvider<bool>((ref) => true);
+
+// Kişi önbelleğini yenileme provider'ı
+final refreshContactsCacheProvider = StateProvider<int>((ref) => 0);
 
 // Ayarlar ekranı
 class SettingsScreen extends ConsumerWidget {
@@ -189,6 +193,19 @@ class SettingsScreen extends ConsumerWidget {
                         final prefs = await SharedPreferences.getInstance();
                         await prefs.setBool(
                             'include_contacts_without_number', value);
+
+                        // ContactsManager önbelleğini temizle
+                        _clearContactsCache(ref, context);
+
+                        // Bildirim göster
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Filtreleme ayarları güncellendi'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
                       },
                       activeColor: primaryColor,
                     ),
@@ -233,6 +250,19 @@ class SettingsScreen extends ConsumerWidget {
                         final prefs = await SharedPreferences.getInstance();
                         await prefs.setBool(
                             'include_numbers_without_name', value);
+
+                        // ContactsManager önbelleğini temizle
+                        _clearContactsCache(ref, context);
+
+                        // Bildirim göster
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Filtreleme ayarları güncellendi'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
                       },
                       activeColor: primaryColor,
                     ),
@@ -400,56 +430,61 @@ class SettingsScreen extends ConsumerWidget {
   }) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDarkMode
-            ? Color(0xFF1E1E1E)
-            : Color(
-                0xFFFCE4EC), // Dark tema için koyu, light tema için açık pembe
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Başlık kısmı (arkaplan rengi olmadan)
+        Padding(
+          padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: isDarkMode ? Colors.white : Colors.black,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.black,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            child,
-          ],
         ),
-      ),
+
+        // İçerik kısmı (arkaplan renkli)
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: isDarkMode
+                ? Color(0xFF222222) // Koyu temada biraz daha açık ton
+                : Color(0xFFFFF3F8), // Açık temada daha açık pembe tonu
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDarkMode
+                  ? Colors.white
+                      .withOpacity(0.1) // Koyu temada hafif beyaz çizgi
+                  : Color(0xFFFFD6E7), // Açık temada pembe çizgi
+              width: 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: child,
+          ),
+        ),
+      ],
     );
   }
 
@@ -521,10 +556,16 @@ class SettingsScreen extends ConsumerWidget {
             width: double.infinity,
             decoration: BoxDecoration(
               color: isDarkMode
-                  ? Color(0xFF1E1E1E)
-                  : Color(
-                      0xFFFCE4EC), // Dark tema için koyu, light tema için açık pembe
+                  ? Color(0xFF222222) // Koyu temada biraz daha açık ton
+                  : Color(0xFFFFF3F8), // Açık temada daha açık pembe tonu
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isDarkMode
+                    ? Colors.white
+                        .withOpacity(0.1) // Koyu temada hafif beyaz çizgi
+                    : Color(0xFFFFD6E7), // Açık temada pembe çizgi
+                width: 1.0,
+              ),
             ),
             padding: EdgeInsets.all(16),
             child: Column(
@@ -652,5 +693,16 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  void _clearContactsCache(WidgetRef ref, BuildContext context) {
+    // ContactsManager önbelleğini temizle
+    final contactsManager = ContactsManager();
+    contactsManager.clearCache();
+
+    // Provider değerini değiştirerek diğer ekranlara bildir
+    ref.read(refreshContactsCacheProvider.notifier).state++;
+
+    debugPrint('Kişi önbelleği temizlendi ve provider güncellendi');
   }
 }

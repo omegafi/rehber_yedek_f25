@@ -127,5 +127,19 @@
   "my_contacts": "Kişilerim",
   "settings": "Ayarlar",
   "calendar": "Takvim",
-  "statistics": "İstatistikler"
+  "statistics": "İstatistikler",
+  
+  "backup_files": "Yedek Dosyaları",
+  "backup_files_info": "Yedeklenen ve dışarı aktarılan dosyalarınız. Geri yüklemek için dosyanın yanındaki butona tıklayın.",
+  "no_backup_files": "Henüz yedek dosyanız bulunmuyor.",
+  "create_backup": "Yedek Oluştur",
+  "share_backup": "Yedeği Paylaş",
+  "delete_backup": "Yedeği Sil",
+  "delete_backup_confirm": "{name} dosyasını silmek istediğinizden emin misiniz?",
+  "backup_deleted": "{name} başarıyla silindi.",
+  "restore_backup": "Yedeği Geri Yükle",
+  "backup_restored": "{count} kişi rehberinize başarıyla geri yüklendi.",
+  "restore_error": "Geri yükleme sırasında bir hata oluştu: {message}",
+  "unsupported_format": "Bu dosya formatı geri yükleme için desteklenmiyor.",
+  "backup_creation_date": "Oluşturulma tarihi: {date}"
 } 

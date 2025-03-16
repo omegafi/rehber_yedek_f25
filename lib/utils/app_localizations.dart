@@ -184,6 +184,27 @@ class AppLocalizations {
   String get settings => translate('settings');
   String get calendar => translate('calendar');
   String get statistics => translate('statistics');
+
+  // Yedek dosyaları ekranı için çeviriler
+  String get backup_files => translate('backup_files');
+  String get backup_files_info => translate('backup_files_info');
+  String get no_backup_files => translate('no_backup_files');
+  String get create_backup => translate('create_backup');
+  String get share_backup => translate('share_backup');
+  String get delete_backup => translate('delete_backup');
+  String get delete_backup_confirm => translate('delete_backup_confirm');
+  String get backup_deleted => translate('backup_deleted');
+  String get restore_backup => translate('restore_backup');
+  String get backup_restored => translate('backup_restored');
+  String get restore_error => translate('restore_error');
+  String get unsupported_format => translate('unsupported_format');
+  String get backup_creation_date => translate('backup_creation_date');
+
+  // Genel uygulamaya özel çeviriler
+  String get app_name => translate('app_title'); // app_title değerini kullan
+  String get about => translate('about_app'); // about_app değerini kullan
+  String get import_contacts =>
+      translate('import_screen_title'); // import_screen_title değerini kullan
 }
 
 class _AppLocalizationsDelegate
