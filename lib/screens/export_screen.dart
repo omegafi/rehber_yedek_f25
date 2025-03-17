@@ -147,19 +147,19 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
               color: contentBackgroundColor,
               child: contactsCountAsync.when(
                 loading: () => Center(
-                  child: Column(
+              child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+                children: [
                       CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(
                           AppTheme.primaryColor,
                         ),
                       ),
                       SizedBox(height: 20),
-                      Text(
+                  Text(
                         'Kişiler Yükleniyor...',
-                        style: TextStyle(
-                          color: textColor,
+                    style: TextStyle(
+                      color: textColor,
                           fontSize: 16,
                         ),
                       ),
@@ -190,14 +190,14 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         // Dışa Aktarma Formatı
-                        Text(
+                  Text(
                           'Dışa Aktarma Formatı',
-                          style: TextStyle(
+                    style: TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
-                        ),
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
                         SizedBox(height: 16),
 
                         // Format seçenekleri
@@ -258,16 +258,16 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                                               fontSize: 12,
                                             ),
                                             textAlign: TextAlign.center,
-                                          ),
-                                        ],
-                                      ),
+                ),
+              ],
+            ),
                                     ),
                                   ),
                                 );
                               }).toList(),
-                            ),
-                          ),
-                        ),
+                ),
+              ),
+            ),
 
                         SizedBox(height: 24),
 
@@ -275,17 +275,17 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                         Container(
                           padding: EdgeInsets.all(16),
                           height: 110, // Sabit yükseklik
-                          decoration: BoxDecoration(
+      decoration: BoxDecoration(
                             color: isDarkMode
                                 ? Colors.white.withOpacity(0.05)
                                 : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
                                   Icon(
                                     _getFormatIcon(selectedFormat),
                                     color: AppTheme.primaryColor,
@@ -294,8 +294,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                                   SizedBox(width: 8),
                                   Text(
                                     '${selectedFormat.displayName}',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
                                       fontSize: 16,
                                       color: textColor,
                                     ),
@@ -306,23 +306,23 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                                     style: TextStyle(
                                       color: textSecondaryColor,
                                       fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                ),
+              ),
+            ],
+          ),
                               SizedBox(height: 8),
                               Expanded(
                                 child: Text(
                                   _getFormatDescription(selectedFormat),
-                                  style: TextStyle(
+              style: TextStyle(
                                     fontSize: 14,
                                     color: textSecondaryColor,
                                   ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
+              ),
+            ),
+          ],
                           ),
                         ),
 
@@ -341,93 +341,111 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                         SizedBox(height: 16),
 
                         // Paylaş veya Kaydet seçenekleri
-                        Row(
-                          children: [
-                            Expanded(
-                              child: InkWell(
-                                onTap: () {
-                                  setState(() {
-                                    _exportDestination =
-                                        ExportDestination.share;
-                                  });
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: 16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.transparent,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: _exportDestination ==
-                                              ExportDestination.share
-                                          ? AppTheme.primaryColor
-                                          : Colors.transparent,
-                                      width: 3,
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color:
+                                  isDarkMode ? Colors.white24 : Colors.black12,
+                              width: 1,
+                            ),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 16),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _exportDestination =
+                                          ExportDestination.share;
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: _exportDestination ==
+                                                ExportDestination.share
+                                            ? AppTheme.primaryColor
+                                            : Colors.transparent,
+                                        width: 3,
+                                      ),
                                     ),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Icon(
-                                        Icons.share,
-                                        color: AppTheme.primaryColor,
-                                        size: 28,
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        'Paylaş',
-                                        style: TextStyle(
-                                          color: textColor,
-                                          fontWeight: FontWeight.w500,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.share,
+                      color: AppTheme.primaryColor,
+                                          size: 24,
                                         ),
-                                      ),
-                                    ],
-                                  ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Paylaş',
+                                          style: TextStyle(
+                                            color: textColor,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 16,
+                                          ),
+                    ),
+                ],
+              ),
+            ),
                                 ),
                               ),
-                            ),
-                            SizedBox(width: 16),
-                            Expanded(
-                              child: InkWell(
-                                onTap: () {
-                                  setState(() {
-                                    _exportDestination =
-                                        ExportDestination.saveToPhone;
-                                  });
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: 16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.transparent,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: _exportDestination ==
-                                              ExportDestination.saveToPhone
-                                          ? AppTheme.primaryColor
-                                          : Colors.transparent,
-                                      width: 3,
+                              SizedBox(width: 16),
+        Expanded(
+                                child: InkWell(
+            onTap: () {
+              setState(() {
+                                      _exportDestination =
+                                          ExportDestination.saveToPhone;
+              });
+            },
+      child: Container(
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+                                      color: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+                                        color: _exportDestination ==
+                                                ExportDestination.saveToPhone
+                ? AppTheme.primaryColor
+                                            : Colors.transparent,
+                                        width: 3,
+          ),
+        ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+          children: [
+            Icon(
+                                          Icons.save,
+                                          color: AppTheme.primaryColor,
+                                          size: 24,
+                                        ),
+                                        SizedBox(width: 8),
+            Text(
+                                          'Kaydet',
+              style: TextStyle(
+                color: textColor,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  child: Column(
-                                    children: [
-                                      Icon(
-                                        Icons.save,
-                                        color: AppTheme.primaryColor,
-                                        size: 28,
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        'Kaydet',
-                                        style: TextStyle(
-                                          color: textColor,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+              ),
+            ),
+          ],
+        ),
+      ),
 
                         SizedBox(height: 20),
 
@@ -689,52 +707,52 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         includeNumbersWithoutName: includeNumbersWithoutName,
       );
 
-      ref.read(exportedFileProvider.notifier).state = exportedFile;
-      ref.read(exportStateProvider.notifier).state = ExportState.success;
+        ref.read(exportedFileProvider.notifier).state = exportedFile;
+        ref.read(exportStateProvider.notifier).state = ExportState.success;
 
       setState(() {
         _isExporting = false;
       });
 
       // Dosyayı paylaş veya kaydet
-      if (_exportDestination == ExportDestination.share) {
+        if (_exportDestination == ExportDestination.share) {
         ref.read(exportStatusMessageProvider.notifier).state =
             'Dosya paylaşılıyor...';
-        await _fileSharingService.shareFile(
-          exportedFile,
-          format,
-        );
-      } else {
+          await _fileSharingService.shareFile(
+            exportedFile,
+            format,
+          );
+        } else {
         // Telefona kaydetme işlemi
-        await _saveToPhone(exportedFile, format);
-      }
+          await _saveToPhone(exportedFile, format);
+        }
 
       // BackupService üzerinden otomatik yedeği kaydet
-      try {
-        final backupService = BackupService();
+        try {
+          final backupService = BackupService();
         final fileExt = format.fileExtension.replaceAll('.', '');
         final filename =
             "${_fileNameController.text}_${DateTime.now().millisecondsSinceEpoch}.$fileExt";
 
         // Dosya içeriğini oku
-        final fileContent = await File(exportedFile).readAsString();
+          final fileContent = await File(exportedFile).readAsString();
 
-        // Yedek dosyasını oluştur
+          // Yedek dosyasını oluştur
         final savedFile = await backupService
             .createBackupFile(fileContent, fileExt, customName: filename);
 
-        debugPrint('Dosya kalıcı olarak yedeklendi: ${savedFile.path}');
+          debugPrint('Dosya kalıcı olarak yedeklendi: ${savedFile.path}');
 
-        // Bu çözüm ekran kapatıldığında dosyanın silinmemesini sağlar
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text('Dosya yedeklendi: ${savedFile.path.split('/').last}'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      } catch (e) {
-        debugPrint('Dosya yedekleme hatası: $e');
+          // Bu çözüm ekran kapatıldığında dosyanın silinmemesini sağlar
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content:
+                  Text('Dosya yedeklendi: ${savedFile.path.split('/').last}'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } catch (e) {
+          debugPrint('Dosya yedekleme hatası: $e');
       }
     } catch (e) {
       ref.read(exportStateProvider.notifier).state = ExportState.error;

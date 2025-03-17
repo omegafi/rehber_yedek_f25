@@ -157,6 +157,7 @@ class ContactsManager {
         withThumbnail: true,
         withPhoto:
             false, // Fotoğrafları daha sonra talep edildiğinde yükleyeceğiz (performans için)
+        withAccounts: true, // Android üzerinde raw ID'leri almak için ekledik
         sorted: true,
       );
 
@@ -803,5 +804,319 @@ class ContactsManager {
     _cachedContacts = null;
 
     return importedCount;
+  }
+
+  // Tekrarlanan telefon numaralarını bul
+  Future<List<List<dynamic>>> getDuplicateNumbers() async {
+    try {
+      final contacts = await getAllContacts();
+
+      // Telefon numaralarına göre gruplandır
+      Map<String, List<Contact>> numberGroups = {};
+
+      for (final contact in contacts) {
+        for (final phone in contact.phones) {
+          // Numarayı normalleştir (sadece rakamları al)
+          final normalizedNumber = phone.number.replaceAll(RegExp(r'\D'), '');
+          if (normalizedNumber.isNotEmpty) {
+            if (!numberGroups.containsKey(normalizedNumber)) {
+              numberGroups[normalizedNumber] = [];
+            }
+            numberGroups[normalizedNumber]!.add(contact);
+          }
+        }
+      }
+
+      // Birden fazla kişiye ait olan numaraları bul
+      List<List<Contact>> duplicateNumbers = [];
+      numberGroups.forEach((number, contactList) {
+        if (contactList.length > 1) {
+          duplicateNumbers.add(contactList);
+        }
+      });
+
+      return duplicateNumbers;
+    } catch (e) {
+      debugPrint('Tekrarlanan numaralar bulunurken hata: $e');
+      return [];
+    }
+  }
+
+  // Tekrarlanan isimleri bul
+  Future<List<List<dynamic>>> getDuplicateNames() async {
+    try {
+      final contacts = await getAllContacts();
+
+      // İsimlere göre gruplandır
+      Map<String, List<Contact>> nameGroups = {};
+
+      for (final contact in contacts) {
+        final fullName =
+            '${contact.name.first} ${contact.name.last}'.trim().toLowerCase();
+        if (fullName.isNotEmpty) {
+          if (!nameGroups.containsKey(fullName)) {
+            nameGroups[fullName] = [];
+          }
+          nameGroups[fullName]!.add(contact);
+        }
+      }
+
+      // Birden fazla kişiye ait olan isimleri bul
+      List<List<Contact>> duplicateNames = [];
+      nameGroups.forEach((name, contactList) {
+        if (contactList.length > 1) {
+          duplicateNames.add(contactList);
+        }
+      });
+
+      return duplicateNames;
+    } catch (e) {
+      debugPrint('Tekrarlanan isimler bulunurken hata: $e');
+      return [];
+    }
+  }
+
+  // Tekrarlanan e-postaları bul
+  Future<List<List<dynamic>>> getDuplicateEmails() async {
+    try {
+      final contacts = await getAllContacts();
+
+      // E-postalara göre gruplandır
+      Map<String, List<Contact>> emailGroups = {};
+
+      for (final contact in contacts) {
+        for (final email in contact.emails) {
+          final normalizedEmail = email.address.trim().toLowerCase();
+          if (normalizedEmail.isNotEmpty) {
+            if (!emailGroups.containsKey(normalizedEmail)) {
+              emailGroups[normalizedEmail] = [];
+            }
+            emailGroups[normalizedEmail]!.add(contact);
+          }
+        }
+      }
+
+      // Birden fazla kişiye ait olan e-postaları bul
+      List<List<Contact>> duplicateEmails = [];
+      emailGroups.forEach((email, contactList) {
+        if (contactList.length > 1) {
+          duplicateEmails.add(contactList);
+        }
+      });
+
+      return duplicateEmails;
+    } catch (e) {
+      debugPrint('Tekrarlanan e-postalar bulunurken hata: $e');
+      return [];
+    }
+  }
+
+  // Eksik bilgiye sahip kişileri bul
+  Future<List<Contact>> getMissingInfoContacts() async {
+    try {
+      final contacts = await getAllContacts();
+
+      // Eksik bilgiye sahip kişileri filtrele
+      final missingInfoContacts = contacts.where((contact) {
+        // İsim eksikliği
+        final hasMissingName =
+            contact.name.first.isEmpty && contact.name.last.isEmpty;
+
+        // Telefon eksikliği
+        final hasMissingPhone = contact.phones.isEmpty;
+
+        // E-posta eksikliği
+        final hasMissingEmail = contact.emails.isEmpty;
+
+        // En az bir eksik bilgisi olan kişileri dahil et
+        return hasMissingName || hasMissingPhone || hasMissingEmail;
+      }).toList();
+
+      debugPrint('${missingInfoContacts.length} eksik bilgili kişi bulundu');
+      return missingInfoContacts;
+    } catch (e) {
+      debugPrint('Eksik bilgiye sahip kişiler bulunurken hata: $e');
+      return [];
+    }
+  }
+
+  // Kişi detaylarını aç
+  void openContact(String contactId) {
+    try {
+      FlutterContacts.openExternalView(contactId);
+    } catch (e) {
+      debugPrint('Kişi açılırken hata: $e');
+      throw Exception('Kişi açılamadı: $e');
+    }
+  }
+
+  // Tekrarlanan kişileri birleştirme
+  Future<bool> mergeContacts(List<Contact> contacts,
+      {Contact? primaryContact}) async {
+    try {
+      if (contacts.length < 2) {
+        throw Exception('Birleştirmek için en az 2 kişi gereklidir');
+      }
+
+      // Ana kişi belirtilmemişse, listedeki ilk kişiyi ana kişi olarak seç
+      Contact main = primaryContact ?? contacts.first;
+
+      // Ana kişi dışındaki kişileri al (birleştirilecek kişiler)
+      List<Contact> othersToMerge =
+          contacts.where((c) => c.id != main.id).toList();
+
+      // Ana kişiyi değiştirmek için tam bilgilerini yükle (withAccounts: true ekledik)
+      Contact? contactDetails = await FlutterContacts.getContact(main.id,
+          withProperties: true, withAccounts: true);
+      if (contactDetails == null) {
+        throw Exception('Ana kişi bulunamadı');
+      }
+      Contact mergedContact = contactDetails;
+
+      // Değiştirilebilir kopyasını oluştur
+      final mutableContact = mergedContact.toJson();
+
+      // Diğer kişilerdeki bilgileri ana kişiye ekle
+      for (var other in othersToMerge) {
+        // Tam bilgileri yükle (withAccounts: true ekledik)
+        Contact? otherDetails = await FlutterContacts.getContact(other.id,
+            withProperties: true, withAccounts: true);
+        if (otherDetails == null) {
+          debugPrint(
+              '${other.displayName} için detaylar yüklenemedi, atlanıyor');
+          continue;
+        }
+        Contact otherFull = otherDetails;
+
+        // Telefon numaralarını ekle (tekrar olmayan)
+        for (var phone in otherFull.phones) {
+          // Numarayı normalleştir (sadece rakamları al)
+          final normalizedNumber = phone.number.replaceAll(RegExp(r'\D'), '');
+
+          // Ana kişide bu numara yoksa ekle
+          if (!mergedContact.phones.any((p) =>
+              p.number.replaceAll(RegExp(r'\D'), '') == normalizedNumber)) {
+            mutableContact['phones'].add({
+              'number': phone.number,
+              'normalizedNumber': normalizedNumber,
+              'label': phone.label,
+              'customLabel': phone.customLabel
+            });
+          }
+        }
+
+        // E-posta adreslerini ekle (tekrar olmayan)
+        for (var email in otherFull.emails) {
+          final normalizedEmail = email.address.trim().toLowerCase();
+
+          // Ana kişide bu email yoksa ekle
+          if (!mergedContact.emails
+              .any((e) => e.address.trim().toLowerCase() == normalizedEmail)) {
+            mutableContact['emails'].add({
+              'address': email.address,
+              'label': email.label,
+              'customLabel': email.customLabel
+            });
+          }
+        }
+
+        // Adresleri ekle (tekrar olmayan)
+        for (var address in otherFull.addresses) {
+          final addressString =
+              '${address.street},${address.city},${address.country}'
+                  .toLowerCase();
+
+          // Ana kişide benzer adres yoksa ekle
+          if (!mergedContact.addresses.any((a) =>
+              '${a.street},${a.city},${a.country}'.toLowerCase() ==
+              addressString)) {
+            mutableContact['addresses'].add({
+              'address': address.address,
+              'street': address.street,
+              'city': address.city,
+              'state': address.state,
+              'postalCode': address.postalCode,
+              'country': address.country,
+              'label': address.label,
+              'customLabel': address.customLabel
+            });
+          }
+        }
+
+        // Not bilgisini birleştir
+        String otherNotes = "";
+        if (otherFull.notes.isNotEmpty) {
+          otherNotes = otherFull.notes.first.note;
+        }
+
+        String mainNotes = "";
+        if (mergedContact.notes.isNotEmpty) {
+          mainNotes = mergedContact.notes.first.note;
+        }
+
+        if (otherNotes.isNotEmpty && otherNotes != mainNotes) {
+          String combinedNotes = mainNotes;
+
+          if (combinedNotes.isNotEmpty) {
+            combinedNotes += '\n\n';
+          }
+
+          combinedNotes += '(Birleştirilmiş kişiden not): ${otherNotes}';
+
+          if (mutableContact['notes'] == null ||
+              mutableContact['notes'].isEmpty) {
+            mutableContact['notes'] = [
+              {'note': combinedNotes}
+            ];
+          } else {
+            mutableContact['notes'][0]['note'] = combinedNotes;
+          }
+        }
+
+        // Şirket bilgisini ekle (eğer ana kişide yoksa)
+        if (mergedContact.organizations.isEmpty &&
+            otherFull.organizations.isNotEmpty) {
+          for (var org in otherFull.organizations) {
+            mutableContact['organizations'].add({
+              'company': org.company,
+              'title': org.title,
+              'department': org.department
+            });
+          }
+        }
+
+        // Doğum günü bilgisini ekle (eğer ana kişide yoksa)
+        if (mergedContact.events.isEmpty && otherFull.events.isNotEmpty) {
+          for (var event in otherFull.events) {
+            mutableContact['events'].add({
+              'year': event.year,
+              'month': event.month,
+              'day': event.day,
+              'label': event.label,
+              'customLabel': event.customLabel
+            });
+          }
+        }
+      }
+
+      // Değiştirilmiş kişiyi yükle
+      final updatedContact = Contact.fromJson(mutableContact);
+
+      // Ana kişiyi güncelle
+      await updatedContact.update();
+
+      // Diğer kişileri sil
+      for (var other in othersToMerge) {
+        await other.delete();
+      }
+
+      // Önbelleği temizle
+      _cachedContacts = null;
+
+      return true;
+    } catch (e) {
+      debugPrint('Kişileri birleştirirken hata: $e');
+      rethrow;
+    }
   }
 }

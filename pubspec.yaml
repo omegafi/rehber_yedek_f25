@@ -47,7 +47,7 @@ dependencies:
   excel: ^2.1.0
   pdf: ^3.10.4
   csv: ^5.0.2
-  url_launcher: ^6.1.14
+  url_launcher: ^6.3.1
   open_file: ^3.3.2
   uuid: ^3.0.7
   flutter_contacts: ^1.1.7+1
@@ -55,7 +55,6 @@ dependencies:
   lottie: ^3.0.0
   google_fonts: ^6.1.0
   shared_preferences: ^2.2.3
-  flutter_native_splash: ^2.4.0
   smooth_page_indicator: ^1.1.0
   in_app_purchase: ^3.1.11 # Satın alma işlemleri için
   flutter_local_notifications: ^16.0.0  # Bildirim işlemleri için
@@ -116,28 +115,3 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
-
-flutter_native_splash:
-  # Splash screen arka plan rengi
-  color: "#000000"
-  color_dark: "#000000"
-  
-  # Platform ayarları
-  android: true
-  ios: true
-  web: false
-  
-  # Logo kullanıyoruz
-  image: assets/images/logorehber.png
-  image_dark: assets/images/logorehber.png
-  
-  # Android 12 ve sonrası için özelleştirilmiş splash screen
-  android_12:
-    # Arka plan rengi
-    color: "#000000"
-    color_dark: "#000000"
-    # Logo
-    image: assets/images/logorehber.png
-    image_dark: assets/images/logorehber.png
-    icon_background_color: "#000000"
-    icon_background_color_dark: "#000000"

@@ -7,7 +7,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'screens/home_screen.dart';
 import 'screens/export_screen.dart';
 import 'screens/settings_screen.dart';
@@ -16,6 +15,10 @@ import 'screens/onboarding_screen.dart';
 import 'screens/import_screen.dart';
 import 'screens/backup_files_screen.dart';
 import 'screens/splash_screen.dart';
+import 'screens/duplicate_numbers_screen.dart';
+import 'screens/duplicate_names_screen.dart';
+import 'screens/duplicate_emails_screen.dart';
+import 'screens/missing_info_contacts_screen.dart';
 import 'theme/app_theme.dart';
 import 'utils/app_localizations.dart';
 import 'providers/localization_provider.dart';
@@ -55,19 +58,20 @@ extension ThemeStateControllerExtension on StateController<ThemeMode> {
 }
 
 void main() async {
-  // Splash screen'i preserve
-  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  // Uygulamanın başlama süresini ölçmek için başlangıç zamanını kaydet
+  final startTime = DateTime.now();
+
+  // Flutter engine'in başlamasını sağla
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Native splash'i koruyacak (kaldırıldı, çünkü çift splash'i önlemek için native splash kullanmıyoruz)
+  // FlutterNativeSplash.preserve(widgetsBinding: WidgetsFlutterBinding.ensureInitialized());
 
   // Ekran yönünü dikey olarak kilitliyoruz
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-
-  // Uygulama başlangıç zamanını kaydet
-  final startTime = DateTime.now();
-  debugPrint('Uygulama başlatılıyor...');
 
   // Verileri paralel olarak yüklüyoruz
   final prefsCompleter = Completer<SharedPreferences>();
@@ -118,12 +122,11 @@ void main() async {
     ),
   );
 
-  // Yükleme işlemi tamamlandıktan sonra native splash'i kaldır
-  // Daha pürüzsüz geçiş için biraz geciktir
-  Future.delayed(Duration(milliseconds: 100), () {
-    FlutterNativeSplash.remove();
-    debugPrint('Native splash kaldırıldı');
-  });
+  // Yükleme işlemi tamamlandıktan sonra native splash'i kaldır (kaldırıldı, çünkü artık native splash kullanmıyoruz)
+  // Future.delayed(Duration(milliseconds: 100), () {
+  //   FlutterNativeSplash.remove();
+  //   debugPrint('Native splash kaldırıldı');
+  // });
 }
 
 class MyApp extends ConsumerWidget {
@@ -170,6 +173,11 @@ class MyApp extends ConsumerWidget {
         '/onboarding': (context) => const OnboardingScreen(),
         '/import': (context) => const ImportScreen(),
         '/backup_files': (context) => const BackupFilesScreen(),
+        '/duplicate-numbers': (context) => const DuplicateNumbersScreen(),
+        '/duplicate-names': (context) => const DuplicateNamesScreen(),
+        '/duplicate-emails': (context) => const DuplicateEmailsScreen(),
+        '/missing-info-contacts': (context) =>
+            const MissingInfoContactsScreen(),
       },
       builder: (context, child) {
         // Performans metriği için build süresini ölç

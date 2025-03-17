@@ -29,7 +29,9 @@ import '../screens/settings_screen.dart'
         includeNumbersWithoutNameProvider,
         refreshContactsCacheProvider; // Filtreleme ve önbellek yenileme provider'ları
 import '../screens/splash_screen.dart'
-    show contactsLoadingProvider; // Kişilerin yüklenme durumu provider'ı
+    show
+        contactsLoadingProvider,
+        contactsLoadingTextProvider; // Kişilerin yüklenme durumu provider'ları
 // import 'package:flutter_native_timezone/flutter_native_timezone.dart'; // Geçici olarak devre dışı bırakıldı
 
 // Rehber izin durumu sağlayıcısı - main.dart'tan geliyor
@@ -416,6 +418,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   int _duplicateEmailCount = 0;
   int _missingInfoCount = 0;
   bool _isProcessing = false;
+  bool contactsLoading = false; // contactsLoading sınıf seviyesinde tanımlandı
   late AnimationController _loadingAnimationController;
 
   // Global bir değişken olarak isDarkMode tanımı
@@ -434,9 +437,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       return;
     }
 
-      setState(() {
-        _selectedIndex = index;
-      });
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
@@ -581,7 +584,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final permissionStatus = ref.watch(contactsPermissionProvider);
 
     // Kişi yükleme durumu (Splash ekrandan)
-    final contactsLoading = ref.watch(contactsLoadingProvider);
+    contactsLoading =
+        ref.watch(contactsLoadingProvider); // Sınıf değişkenine atama
 
     // Arka plan gradyanı
     final backgroundGradient = LinearGradient(
@@ -663,7 +667,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ? _buildHomeScreen(isDarkMode, textColor, cardColor)
                 : _selectedIndex == 1
                     ? _buildContactsScreen(
-                    isDarkMode, textColor, cardColor, textSecondaryColor)
+                        isDarkMode, textColor, cardColor, textSecondaryColor)
                     : _selectedIndex == 2
                         ? _buildBackupsScreen(isDarkMode, textColor, cardColor)
                         : Center(
@@ -673,65 +677,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             : _buildPermissionRequest(isDarkMode, textColor, cardColor),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(isDarkMode, textColor),
-    );
-  }
-
-  // Yükleniyor göstergesi
-  Widget _buildContactsLoadingIndicator(bool isDarkMode, Color textColor) {
-    return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(
-              AppTheme.primaryColor,
-            ),
-          ),
-          SizedBox(height: 20),
-            Text(
-            "Kişileriniz Yükleniyor...",
-              style: TextStyle(
-                fontSize: 16,
-              color: textColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Alt navigasyon çubuğu - tema uyumluluğu için güncellendi
-  Widget _buildBottomNavigationBar(bool isDarkMode, Color textColor) {
-    return BottomNavigationBar(
-      currentIndex: _selectedIndex,
-      onTap: _onItemTapped,
-      type: BottomNavigationBarType.fixed,
-      backgroundColor:
-          isDarkMode ? AppTheme.darkCardColor : AppTheme.lightCardColor,
-      selectedItemColor: AppTheme.primaryColor,
-      unselectedItemColor: textColor.withOpacity(0.6),
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'Ana Sayfa',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.contacts_outlined),
-          activeIcon: Icon(Icons.contacts),
-          label: 'Kişilerim',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.backup_outlined),
-          activeIcon: Icon(Icons.backup),
-          label: 'Yedekler',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.settings_outlined),
-          activeIcon: Icon(Icons.settings),
-          label: 'Ayarlar',
-        ),
-      ],
     );
   }
 
@@ -746,6 +691,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Kişilerin yüklendiğini ve sayma animasyonunu kontrol eden state
     final countingStarted = ref.watch(countingStartedProvider);
     final animationCompleted = ref.watch(animationCompletedProvider);
+
+    // Kişilerin yükleme durumunu kontrol et
+    final loadingText = ref.watch(contactsLoadingTextProvider);
+    final isError =
+        loadingText.toLowerCase().contains("hata"); // Hata durumunu tespit et
 
     // Duplicate contacts sağlayıcıları
     final duplicateNumbersAsync = ref.watch(duplicateNumbersProvider);
@@ -764,10 +714,98 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _duplicateEmailCount = duplicateEmailsAsync.value?.length ?? 0;
     _missingInfoCount = missingInfoContactsAsync.value?.length ?? 0;
 
+    // Tüm veriler yüklendi mi kontrol et
+    final bool isAllDataLoaded = !filteredCountAsync.isLoading &&
+        !duplicateNumbersAsync.isLoading &&
+        !duplicateEmailsAsync.isLoading &&
+        !duplicateNamesAsync.isLoading &&
+        !missingInfoContactsAsync.isLoading;
+
+    // Yükleme tamamlandığında contactsLoading'i false yap
+    if (isAllDataLoaded && contactsLoading) {
+      Future.microtask(() {
+        ref.read(contactsLoadingProvider.notifier).state = false;
+      });
+    }
+
     return SafeArea(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // Kişilerin yüklenmesini gösteren bildirim bandı - sadece yükleme devam ederken veya hata varsa göster
+          if ((contactsLoading && !isAllDataLoaded) || isError)
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: isError
+                    ? Colors.red
+                        .withOpacity(0.1) // Hata durumunda kırmızı arka plan
+                    : isDarkMode
+                        ? Colors.white.withOpacity(0.1)
+                        : Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isError
+                      ? Colors.red
+                          .withOpacity(0.5) // Hata durumunda kırmızı kenarlık
+                      : AppTheme.primaryColor.withOpacity(0.5),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: isError
+                        ? Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 18,
+                          )
+                        : CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                AppTheme.primaryColor),
+                            strokeWidth: 2,
+                          ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      loadingText.isNotEmpty
+                          ? loadingText
+                          : "Kişileriniz arka planda yükleniyor...",
+                      style: TextStyle(
+                        color: isError ? Colors.red : textColor,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  // Hata durumunda yeniden deneme butonu
+                  if (isError)
+                    IconButton(
+                      icon: Icon(Icons.refresh, color: Colors.red, size: 18),
+                      onPressed: () {
+                        // Future ile sarmalayarak build metodundan sonra çalıştır
+                        Future(() {
+                          ref
+                              .read(refreshContactsCacheProvider.notifier)
+                              .state++;
+                          ref.read(contactsLoadingTextProvider.notifier).state =
+                              "Kişileriniz hazırlanıyor...";
+                        });
+                      },
+                      padding: EdgeInsets.all(4),
+                      constraints: BoxConstraints(),
+                      splashRadius: 20,
+                    ),
+                ],
+              ),
+            ),
+
           Expanded(
             child: Center(
               child: _buildProgressCircle(),
@@ -778,13 +816,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
-                  _buildStatCardsHorizontalLayout(),
+                  _buildStats(textColor),
                 ],
               ),
             ),
-                              ),
-                            ],
-                          ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -797,6 +835,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final animationStarted = ref.watch(countingStartedProvider);
     final animationCompleted = ref.watch(animationCompletedProvider);
 
+    // Kişi sayısını ve yükleme durumunu izle
+    final filteredCountAsync = ref.watch(filteredContactsCountProvider);
+    final loadingText = ref.watch(contactsLoadingTextProvider);
+    final isError = loadingText.toLowerCase().contains("hata");
+
     // İlerleme yüzdesi (0-100 arası)
     double progressPercent = 0;
 
@@ -807,7 +850,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       final elapsed = (now - _animationStartTime) / _animationDuration;
       progressPercent = (elapsed * 100).clamp(0, 100) / 100;
 
-      // Animasyon tamamlandı mı kontrol et
+      // Animasyon tamamlandıysa timer'ı durdur
       if (progressPercent >= 1.0) {
         // Build içinde provider değiştirme hatasını önlemek için Future kullanıyoruz
         Future.microtask(() {
@@ -823,38 +866,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final sweepAngle = progressPercent * 360;
 
     return Container(
-      height: 180,
-      width: 180,
+      height: 240,
+      width: 240,
       child: Stack(
         alignment: Alignment.center,
         children: [
           // Arka plan çemberi - tam daire (360 derece)
           CustomPaint(
-            size: const Size(180, 180),
+            size: const Size(240, 240),
             painter: ArcPainter(
-              color: Colors.grey.shade300,
-              strokeWidth: 12,
+              color: Colors.blue.shade100,
+              strokeWidth: 30,
               sweepAngle: 360,
-                                        startAngle: 0,
+              startAngle: 0,
             ),
           ),
           // İlerleme çemberi - ilerleme yüzdesine göre
           CustomPaint(
-            size: const Size(180, 180),
+            size: const Size(240, 240),
             painter: ArcPainter(
               color: appPrimaryColor,
-              strokeWidth: 12,
+              strokeWidth: 30,
               sweepAngle: sweepAngle,
               startAngle: 0,
             ),
           ),
-          // Eğer işlem devam ediyorsa, yükleme animasyonu göster
-          if (_isProcessing)
+          // Eğer işlem devam ediyorsa veya kişiler yükleniyorsa, yükleme animasyonu göster
+          if (_isProcessing ||
+              (contactsLoading && filteredCountAsync.isLoading))
             CustomPaint(
-              size: const Size(180, 180),
+              size: const Size(240, 240),
               painter: LoadingArcPainter(
                 color: appPrimaryColor.withOpacity(0.5),
-                strokeWidth: 4,
+                strokeWidth: 8,
                 startAngle: 0,
                 repaintController: _arcAnimationController,
               ),
@@ -863,10 +907,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           // İçeriği ortala
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
+            children: [
               if (_isProcessing)
                 Text(
                   'Taranıyor...',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                )
+              else if (contactsLoading && filteredCountAsync.isLoading)
+                Text(
+                  'Yükleniyor...',
                   style: TextStyle(
                     fontSize: 12,
                     color: isDarkMode ? Colors.white70 : Colors.black54,
@@ -876,55 +928,85 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               Text(
                 animationStarted && !animationCompleted
                     ? '%${(progressPercent * 100).toInt()}'
-                    : '$_totalContacts',
-                                          style: TextStyle(
+                    : filteredCountAsync.when(
+                        data: (count) => count.toString(),
+                        loading: () => '...',
+                        error: (_, __) => '!',
+                      ),
+                style: TextStyle(
                   fontSize: 24,
-                                            fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.bold,
                   color: isDarkMode ? Colors.white : Colors.black,
                 ),
               ),
-                                      Text(
+              Text(
                 "kişi",
-                                        style: TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                  color: Colors.black, // Siyah renk
                 ),
               ),
-              const SizedBox(height: 24),
-              Container(
-                width: 40,
-                height: 40,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                  color: appPrimaryColor,
-                                      boxShadow: [
-                                        BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                child: _showSuccessIcon
-                    ? Icon(
-                        Icons.check,
-                                            color: Colors.white,
-                        size: 20,
-                      )
-                    : IconButton(
-                        icon: Icon(
-                          _isProcessing ? Icons.sync : Icons.backup,
-                          color: Colors.white,
-                          size: 20,
+              const SizedBox(height: 16), // 24'ten 16'ya düşürdük
+              Column(
+                children: [
+                  Container(
+                    width: 120, // Genişliği artırdık
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: appPrimaryColor,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
                         ),
-                        onPressed: _isProcessing ? null : _startCountAnimation,
-                        tooltip: 'Yedekle',
-                                          ),
-                                        ),
-                                      ],
-                              ),
                       ],
                     ),
+                    child: _showSuccessIcon
+                        ? Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 24,
+                          )
+                        : Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: (_isProcessing ||
+                                      (contactsLoading &&
+                                          filteredCountAsync.isLoading))
+                                  ? null
+                                  : _startCountAnimation,
+                              borderRadius: BorderRadius.circular(20),
+                              child: Center(
+                                child: Icon(
+                                  _isProcessing ||
+                                          (contactsLoading &&
+                                              filteredCountAsync.isLoading)
+                                      ? Icons.sync
+                                      : Icons.backup,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Yedekle",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: appPrimaryColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -1028,108 +1110,79 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
-  // Kutuları oluşturan fonksiyon
-  Widget _buildStatCardsHorizontalLayout() {
+  // İstatistikleri göster
+  Widget _buildStats(Color textColor) {
+    // Provider'dan tekrarlayan kişileri al
+    final duplicateNumbersAsync = ref.watch(duplicateNumbersProvider);
+    final duplicateNamesAsync = ref.watch(duplicateNamesProvider);
+    final duplicateEmailsAsync = ref.watch(duplicateEmailsProvider);
+    final missingInfoContactsAsync = ref.watch(missingInfoContactsProvider);
+
     return Column(
-                children: [
-        // Tekrar eden numaralar kutusu
+      children: [
+        // Tekrar eden numaralar kartı
         _buildImprovedStatCard(
-          icon: Icons.call_merge,
+          icon: Icons.phone,
           title: 'Tekrar Eden Numaralar',
-          value: _duplicatePhoneCount,
+          value: duplicateNumbersAsync.when(
+            data: (data) => data.isEmpty ? 0 : data.length,
+            loading: () => -1,
+            error: (_, __) => -2,
+          ),
           onTap: () {
-            // Telefon rehberi yerine diyalogu göster
-            _showDuplicateNumbersDialog();
+            Navigator.of(context).pushNamed('/duplicate-numbers');
           },
         ),
-        const SizedBox(height: 12),
 
-        // Tekrar eden isimler kutusu
+        SizedBox(height: 12),
+
+        // Tekrar eden isimler kartı
         _buildImprovedStatCard(
-          icon: Icons.person_add_disabled,
+          icon: Icons.person,
           title: 'Tekrar Eden İsimler',
-          value: _duplicateNameCount,
+          value: duplicateNamesAsync.when(
+            data: (data) => data.isEmpty ? 0 : data.length,
+            loading: () => -1,
+            error: (_, __) => -2,
+          ),
           onTap: () {
-            // Telefon rehberi yerine diyalogu göster
-            _showDuplicateNamesDialog();
+            Navigator.of(context).pushNamed('/duplicate-names');
           },
         ),
-        const SizedBox(height: 12),
 
-        // Tekrar eden e-postalar kutusu
+        SizedBox(height: 12),
+
+        // Tekrar eden e-postalar kartı
         _buildImprovedStatCard(
           icon: Icons.email,
           title: 'Tekrar Eden E-postalar',
-          value: _duplicateEmailCount,
+          value: duplicateEmailsAsync.when(
+            data: (data) => data.isEmpty ? 0 : data.length,
+            loading: () => -1,
+            error: (_, __) => -2,
+          ),
           onTap: () {
-            // Telefon rehberi yerine diyalogu göster
-            _showDuplicateEmailsDialog();
+            Navigator.of(context).pushNamed('/duplicate-emails');
           },
         ),
-        const SizedBox(height: 12),
 
-        // Eksik bilgili kişiler kutusu
+        SizedBox(height: 12),
+
+        // Eksik Bilgili Kişiler kartı
         _buildImprovedStatCard(
-          icon: Icons.error_outline,
+          icon: Icons.warning_amber_rounded,
           title: 'Eksik Bilgili Kişiler',
-          value: _missingInfoCount,
+          value: missingInfoContactsAsync.when(
+            data: (data) => data.isEmpty ? 0 : data.length,
+            loading: () => -1,
+            error: (_, __) => -2,
+          ),
           onTap: () {
-            // Telefon rehberi yerine diyalogu göster
-            _showMissingInfoDialog();
+            Navigator.of(context).pushNamed('/missing-info-contacts');
           },
         ),
       ],
     );
-  }
-
-  // Basitleştirilmiş diyalog gösterme fonksiyonları
-  void _showDuplicateNumbersDialog() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text('Tekrar eden numaralar sayfası henüz aktif değil')),
-    );
-  }
-
-  void _showDuplicateNamesDialog() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Tekrar eden isimler sayfası henüz aktif değil')),
-    );
-  }
-
-  void _showDuplicateEmailsDialog() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text('Tekrar eden e-postalar sayfası henüz aktif değil')),
-    );
-  }
-
-  void _showMissingInfoDialog() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text('Eksik bilgili kişiler sayfası henüz aktif değil')),
-    );
-  }
-
-  // Telefonun rehber uygulamasını açan yardımcı fonksiyon
-  Future<void> _openContactsApp() async {
-    try {
-      if (Platform.isAndroid) {
-        // Android'de rehber uygulamasını aç
-        await launch('content://com.android.contacts/contacts');
-      } else if (Platform.isIOS) {
-        // iOS için rehber uygulamasını aç
-        await launch('tel://');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Bu platformda rehber uygulaması açılamıyor')),
-        );
-      }
-    } catch (e) {
-      // Hata durumunda bizim diyaloglarımızı göster
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Rehber uygulaması açılamadı: ${e.toString()}')),
-      );
-    }
   }
 
   // İyileştirilmiş kart tasarımı
@@ -1142,19 +1195,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Tema modunu kontrol et
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // Renkleri belirle - Google mavisi
+    // Renkleri belirle
     final cardColor = Colors.white; // Her zaman beyaz arka plan
     final textColor = isDarkMode ? Colors.white70 : Colors.black87;
-    final iconColor = appPrimaryColor; // Google mavisi
 
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: appPrimaryColor.withOpacity(0.5),
-          width: 2.0,
-      ),
       ),
       color: cardColor,
       child: InkWell(
@@ -1163,31 +1211,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         splashColor: appPrimaryColor.withOpacity(0.1),
         highlightColor: appPrimaryColor.withOpacity(0.05),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           child: Row(
-                  children: [
-                    // İkon kısmı
-                    Container(
-                padding: EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                  color: appPrimaryColor.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        icon,
-                  color: iconColor,
+            children: [
+              // İkon kısmı
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: appPrimaryColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.white,
                   size: 20,
-                      ),
-                    ),
+                ),
+              ),
               SizedBox(width: 14),
 
               // Başlık
-                    Expanded(
+              Expanded(
                 child: Text(
-                            title,
-                            style: TextStyle(
+                  title,
+                  style: TextStyle(
                     fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w500,
                     color: textColor,
                   ),
                 ),
@@ -1195,38 +1243,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
               // Sağ tarafta değer ve ok
               Row(
-                      children: [
+                children: [
                   // Değer
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: appPrimaryColor.withOpacity(0.1),
+                      color: appPrimaryColor,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                          child: Text(
+                    child: Text(
                       value == -1
                           ? '...'
                           : value == -2
                               ? '!'
                               : value.toString(),
-                            style: TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: appPrimaryColor,
-                            ),
-                          ),
-                        ),
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                   SizedBox(width: 8),
                   // Ok
                   Icon(
                     Icons.arrow_forward_ios,
                     size: 14,
                     color: isDarkMode ? Colors.white38 : Colors.black38,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1239,17 +1287,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+          children: [
             Icon(
               Icons.contacts_outlined,
               size: 64,
               color: textColor.withOpacity(0.5),
             ),
             const SizedBox(height: 24),
-                        Text(
+            Text(
               context.l10n.contacts_permission_message,
               textAlign: TextAlign.center,
-                          style: TextStyle(
+              style: TextStyle(
                 color: textColor,
                 fontSize: 16,
               ),
@@ -1269,10 +1317,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                    ),
-                  ),
-                ],
               ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1326,34 +1374,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+                    children: [
                       Icon(
                         Icons.error_outline,
                         size: 48,
                         color: Colors.red,
                       ),
                       SizedBox(height: 16),
-              Text(
+                      Text(
                         'Kişiler yüklenirken hata oluştu',
-                style: TextStyle(
-                  color: textColor,
+                        style: TextStyle(
+                          color: textColor,
                           fontSize: 16,
-                ),
-              ),
+                        ),
+                      ),
                       SizedBox(height: 8),
-              Text(
+                      Text(
                         contactsAsync.error.toString(),
-                style: TextStyle(
+                        style: TextStyle(
                           color: textColor.withOpacity(0.7),
                           fontSize: 14,
-                ),
-              ),
-            ],
-          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               }
 
-        // Kişiler listesi
+              // Kişiler listesi
               final contacts = contactsAsync.value ?? [];
 
               // Kişi yoksa
@@ -1361,7 +1409,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+                    children: [
                       Icon(
                         Icons.person_off,
                         size: 64,
@@ -1374,16 +1422,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           color: textColor,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-    );
-  }
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
 
               // Seçili kişileri izle
-    final selectedContacts = ref.watch(selectedContactsProvider);
-    final allSelected = ref.watch(allContactsSelectedProvider);
+              final selectedContacts = ref.watch(selectedContactsProvider);
+              final allSelected = ref.watch(allContactsSelectedProvider);
 
               // Arama filtresi uygula
               final filteredContacts = _searchQuery.isEmpty
@@ -1391,11 +1439,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   : contacts.where((contact) {
                       final name = '${contact.displayName}'.toLowerCase();
                       return name.contains(_searchQuery);
-            }).toList();
+                    }).toList();
 
               // Boş arama sonucu
               if (filteredContacts.isEmpty && _searchQuery.isNotEmpty) {
-              return Center(
+                return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -1407,8 +1455,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       SizedBox(height: 16),
                       Text(
                         'Arama sonucu bulunamadı',
-                  style: TextStyle(
-                    color: textColor,
+                        style: TextStyle(
+                          color: textColor,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1422,44 +1470,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         ),
                       ),
                     ],
-                ),
-              );
-            }
+                  ),
+                );
+              }
 
-            return ListView.builder(
+              return ListView.builder(
                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              itemCount: filteredContacts.length,
-              itemBuilder: (context, index) {
-                final contact = filteredContacts[index];
-                final isSelected = selectedContacts.contains(contact.id);
+                itemCount: filteredContacts.length,
+                itemBuilder: (context, index) {
+                  final contact = filteredContacts[index];
+                  final isSelected = selectedContacts.contains(contact.id);
 
                   return Card(
                     margin: EdgeInsets.only(bottom: 8),
                     shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12),
                       side: isSelected
                           ? BorderSide(color: AppTheme.primaryColor, width: 2)
                           : BorderSide.none,
                     ),
                     elevation: 1,
                     color: cardColor,
-                  child: InkWell(
-                    onTap: () {
+                    child: InkWell(
+                      onTap: () {
                         // Kişi seçme işlemi
                         if (selectedContacts.contains(contact.id)) {
                           ref.read(selectedContactsProvider.notifier).state =
                               Set.from(selectedContacts)..remove(contact.id);
-                      } else {
-                      ref.read(selectedContactsProvider.notifier).state =
+                        } else {
+                          ref.read(selectedContactsProvider.notifier).state =
                               Set.from(selectedContacts)..add(contact.id);
                         }
                       },
                       borderRadius: BorderRadius.circular(12),
-                    child: Padding(
+                      child: Padding(
                         padding: EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          // Avatar
+                        child: Row(
+                          children: [
+                            // Avatar
                             CircleAvatar(
                               radius: 24,
                               backgroundColor: isSelected
@@ -1469,39 +1517,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   ? Icon(Icons.check, color: Colors.white)
                                   : Text(
                                       _getInitials(contact.displayName),
-                                style: TextStyle(
+                                      style: TextStyle(
                                         color: Colors.black54,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                             ),
                             SizedBox(width: 16),
 
-                          // Kişi bilgileri
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                    contact.displayName,
-                                  style: TextStyle(
-                                      color: textColor,
-                                    fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                  SizedBox(height: 4),
-                                  if (contact.phones.isNotEmpty)
+                            // Kişi bilgileri
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   Text(
-                                    contact.phones.first.number,
+                                    contact.displayName,
                                     style: TextStyle(
-                                        color: textColor.withOpacity(0.7),
-                                      fontSize: 14,
+                                      color: textColor,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                              ],
+                                  SizedBox(height: 4),
+                                  if (contact.phones.isNotEmpty)
+                                    Text(
+                                      contact.phones.first.number,
+                                      style: TextStyle(
+                                        color: textColor.withOpacity(0.7),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
-                          ),
 
                             // Checkbox
                             Checkbox(
@@ -1520,15 +1568,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 }
                               },
                               activeColor: AppTheme.primaryColor,
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-            );
-          },
+                  );
+                },
+              );
+            },
           ),
         ),
       ],
@@ -1586,41 +1634,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         if (snapshot.hasError) {
           return Center(
             child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
                   Icons.error_outline,
                   size: 48,
                   color: Colors.red,
                 ),
                 SizedBox(height: 16),
-              Text(
+                Text(
                   'Yedek dosyaları yüklenirken hata oluştu',
-                style: TextStyle(
+                  style: TextStyle(
                     color: textColor,
                     fontSize: 16,
                   ),
                 ),
                 SizedBox(height: 8),
-          Text(
+                Text(
                   snapshot.error.toString(),
-            style: TextStyle(
+                  style: TextStyle(
                     color: textColor.withOpacity(0.7),
                     fontSize: 14,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          );
+        }
 
         final backupFiles = snapshot.data ?? [];
 
         if (backupFiles.isEmpty) {
           return Center(
-          child: Column(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+              children: [
                 Icon(
                   Icons.backup_outlined,
                   size: 64,
@@ -1638,9 +1686,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 SizedBox(height: 8),
                 Text(
                   'Ana sayfada yedekleme yaparak başlayabilirsiniz',
-                    style: TextStyle(
+                  style: TextStyle(
                     color: textColor.withOpacity(0.7),
-                      fontSize: 14,
+                    fontSize: 14,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -1659,28 +1707,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
-              ),
-            ],
-      ),
-    );
-  }
+              ],
+            ),
+          );
+        }
 
         return Column(
-            children: [
+          children: [
             // Yedekleri geri yükleme butonu
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
               child: ElevatedButton.icon(
                 onPressed: () => _showImportDialog(context),
                 icon: Icon(Icons.restore),
                 label: Text('Yedek Dosyasından Geri Yükle'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                      minimumSize: Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  minimumSize: Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
@@ -1736,10 +1784,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       fileType = fileExt.toUpperCase();
                   }
 
-    return Card(
+                  return Card(
                     margin: EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 2,
                     color: cardColor,
@@ -1748,9 +1796,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       leading: Container(
                         padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
+                        decoration: BoxDecoration(
                           color: appPrimaryColor.withOpacity(0.1),
-      borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(
                           fileIcon,
@@ -1759,40 +1807,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ),
                       title: Text(
                         fileName,
-                style: TextStyle(
+                        style: TextStyle(
                           color: textColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           SizedBox(height: 4),
-                  Text(
+                          Text(
                             'Tarih: $formattedDate',
-                    style: TextStyle(
+                            style: TextStyle(
                               color: textColor.withOpacity(0.7),
                               fontSize: 12,
-                    ),
-                  ),
-                    Text(
+                            ),
+                          ),
+                          Text(
                             'Format: $fileType',
-                      style: TextStyle(
+                            style: TextStyle(
                               color: textColor.withOpacity(0.7),
-                        fontSize: 12,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                ],
-              ),
                       trailing: IconButton(
                         icon: Icon(Icons.restore_from_trash),
                         color: AppTheme.primaryColor,
                         onPressed: () =>
                             _showRestoreConfirmDialog(context, file),
                         tooltip: 'Geri Yükle',
-        ),
-      ),
-    );
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
@@ -1821,20 +1869,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       builder: (context) => AlertDialog(
         title: Text('Yedeği Geri Yükle'),
         content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
                 '$fileName dosyasından kişileri geri yüklemek istiyor musunuz?'),
-              SizedBox(height: 8),
-              Text(
+            SizedBox(height: 8),
+            Text(
               'Bu işlem mevcut kişilerinizi değiştirmez, yedekteki kişileri rehberinize ekler.',
-                style: TextStyle(
-              color: isDarkMode ? Colors.white70 : Colors.black54,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : Colors.black54,
                 fontSize: 12,
+              ),
             ),
-          ),
-        ],
+          ],
         ),
         actions: [
           TextButton(
@@ -1880,12 +1928,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             content:
                 Text('$fileExt formatında geri yükleme henüz desteklenmiyor'),
             backgroundColor: Colors.orange,
-      ),
-    );
-  }
+          ),
+        );
+      }
     } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
           content: Text('Geri yükleme sırasında hata oluştu: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
@@ -1910,5 +1958,116 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       ref.read(includeNumbersWithoutNameProvider.notifier).state =
           includeNumbersWithoutName;
     }
+  }
+
+  // Yükleniyor göstergesi
+  Widget _buildContactsLoadingIndicator(bool isDarkMode, Color textColor) {
+    // Yükleme metni provider'ından alıyoruz
+    final loadingText = ref.watch(contactsLoadingTextProvider);
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Dönen animasyon
+          SizedBox(
+            width: 60,
+            height: 60,
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+                AppTheme.primaryColor,
+              ),
+              strokeWidth: 3,
+            ),
+          ),
+          SizedBox(height: 24),
+          // Ana yükleme metni
+          Text(
+            "Kişileriniz Yükleniyor...",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          SizedBox(height: 12),
+          // Detaylı yükleme bilgisi
+          Text(
+            loadingText.isNotEmpty
+                ? loadingText
+                : "Rehberinizdeki kişiler hazırlanıyor",
+            style: TextStyle(
+              fontSize: 14,
+              color: textColor.withOpacity(0.8),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 40),
+          // İpucu metni
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDarkMode
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: AppTheme.primaryColor.withOpacity(0.7),
+                  size: 24,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  "Bu işlem, kişi sayınıza bağlı olarak biraz zaman alabilir. Lütfen bekleyin...",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: textColor.withOpacity(0.8),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Alt navigasyon çubuğu - tema uyumluluğu için güncellendi
+  Widget _buildBottomNavigationBar(bool isDarkMode, Color textColor) {
+    return BottomNavigationBar(
+      currentIndex: _selectedIndex,
+      onTap: _onItemTapped,
+      type: BottomNavigationBarType.fixed,
+      backgroundColor:
+          isDarkMode ? AppTheme.darkCardColor : AppTheme.lightCardColor,
+      selectedItemColor: AppTheme.primaryColor,
+      unselectedItemColor: textColor.withOpacity(0.6),
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          activeIcon: Icon(Icons.home),
+          label: 'Ana Sayfa',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.contacts_outlined),
+          activeIcon: Icon(Icons.contacts),
+          label: 'Kişilerim',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.backup_outlined),
+          activeIcon: Icon(Icons.backup),
+          label: 'Yedekler',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.settings_outlined),
+          activeIcon: Icon(Icons.settings),
+          label: 'Ayarlar',
+        ),
+      ],
+    );
   }
 }
