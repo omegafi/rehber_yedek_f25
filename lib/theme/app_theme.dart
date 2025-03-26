@@ -7,18 +7,19 @@ class AppTheme {
   static const Color primaryColor = Color(0xFF1A73E8); // Daha koyu Google mavi
 
   // Koyu tema ana renkleri - Siyah arka plan, beyaz metin
-  static const Color darkBackgroundColor = Colors.black; // Tam siyah arka plan
-  static const Color darkSurfaceColor = Color(0xFF121212); // Koyu siyah yüzey
+  static const Color darkBackgroundColor =
+      Color(0xFF121212); // Tam siyah yerine biraz daha açık ton
+  static const Color darkSurfaceColor = Color(0xFF1E1E1E); // Koyu siyah yüzey
   static const Color darkCardColor =
-      Color(0xFF1D1D1D); // Kartlar için koyu siyah
+      Color(0xFF2C2C2C); // Kartlar için koyu siyah
   static const Color darkTextColor = Colors.white; // Beyaz metin
   static const Color darkTextSecondaryColor =
-      Colors.white; // Tam beyaz (görünürlük için)
+      Colors.white70; // %70 beyaz (daha iyi kontrast)
   static const Color darkTextTertiaryColor =
-      Colors.white; // Tam beyaz (görünürlük için)
+      Colors.white60; // %60 beyaz (daha iyi kontrast)
   static const Color darkTextPrimaryColor = Colors.white; // Tam beyaz
   static const Color darkDividerColor =
-      Colors.white38; // %38 beyaz (daha görünür)
+      Colors.white24; // %24 beyaz (daha görünür)
 
   // Açık tema ana renkleri - Beyaz arka plan, siyah metin
   static const Color lightBackgroundColor = Colors.white; // Beyaz arka plan
@@ -126,6 +127,12 @@ class AppTheme {
         foregroundColor: lightTextPrimaryColor,
         elevation: 0,
         iconTheme: IconThemeData(color: lightTextPrimaryColor),
+        titleTextStyle: TextStyle(
+          color: lightTextPrimaryColor,
+          fontSize: 20, // +2sp daha büyük
+          fontWeight: FontWeight.bold, // Bold yapıldı
+          fontFamily: 'Poppins',
+        ),
       ),
       cardTheme: CardTheme(
         elevation: 1, // Daha az gölge
@@ -228,6 +235,12 @@ class AppTheme {
         foregroundColor: darkTextPrimaryColor,
         elevation: 0,
         iconTheme: IconThemeData(color: darkTextPrimaryColor),
+        titleTextStyle: TextStyle(
+          color: darkTextPrimaryColor,
+          fontSize: 20, // +2sp daha büyük
+          fontWeight: FontWeight.bold, // Bold yapıldı
+          fontFamily: 'Poppins',
+        ),
       ),
       cardTheme: CardTheme(
         elevation: 1, // Daha az gölge

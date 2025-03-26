@@ -209,6 +209,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         title: Text(
           'Premium Aktifleştirildi',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
@@ -249,6 +250,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         title: Text(
           'Hata Oluştu',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),

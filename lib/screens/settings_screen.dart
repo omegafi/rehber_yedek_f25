@@ -150,7 +150,7 @@ class SettingsScreen extends ConsumerWidget {
           // Rehber Filtreleme Ayarları
           _buildSection(
             context,
-            title: 'Rehber Filtreleme',
+            title: context.l10n.contact_filtering,
             icon: Icons.filter_list,
             color: primaryColor,
             textColor: textColor,
@@ -166,14 +166,14 @@ class SettingsScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Numarası olmayan kişileri dahil et',
+                            context.l10n.include_contacts_without_number,
                             style: TextStyle(
                               fontSize: 16,
                               color: textColor,
                             ),
                           ),
                           Text(
-                            'Telefon numarası olmayan kişileri yedeklemeye dahil et',
+                            context.l10n.include_contacts_without_number_desc,
                             style: TextStyle(
                               fontSize: 12,
                               color: textColor.withOpacity(0.7),
@@ -201,7 +201,7 @@ class SettingsScreen extends ConsumerWidget {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Filtreleme ayarları güncellendi'),
+                              content: Text(context.l10n.filters_active),
                               duration: Duration(seconds: 2),
                             ),
                           );
@@ -223,14 +223,14 @@ class SettingsScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'İsmi olmayan numaraları dahil et',
+                            context.l10n.include_numbers_without_name,
                             style: TextStyle(
                               fontSize: 16,
                               color: textColor,
                             ),
                           ),
                           Text(
-                            'İsim bilgisi olmayan telefon numaralarını yedeklemeye dahil et',
+                            context.l10n.include_numbers_without_name_desc,
                             style: TextStyle(
                               fontSize: 12,
                               color: textColor.withOpacity(0.7),
@@ -258,7 +258,7 @@ class SettingsScreen extends ConsumerWidget {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Filtreleme ayarları güncellendi'),
+                              content: Text(context.l10n.filters_active),
                               duration: Duration(seconds: 2),
                             ),
                           );
@@ -539,119 +539,115 @@ class SettingsScreen extends ConsumerWidget {
     await prefs.setBool('dark_theme', isDarkMode);
   }
 
-  // Dil seçim dialogunu gösteren metodu düzenliyorum
+  // Dil seçimini göster
   void _showLanguageSelectionDialog(BuildContext context, WidgetRef ref) {
-    final currentLocale = ref.watch(localeProvider);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final locale = ref.watch(localeProvider);
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+      builder: (context) => AlertDialog(
+        insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        title: Text(
+          context.l10n.language_title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isDarkMode ? Colors.white : Colors.black,
           ),
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: isDarkMode
-                  ? Color(0xFF222222) // Koyu temada biraz daha açık ton
-                  : Color(0xFFFFF3F8), // Açık temada daha açık pembe tonu
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isDarkMode
-                    ? Colors.white
-                        .withOpacity(0.1) // Koyu temada hafif beyaz çizgi
-                    : Color(0xFFFFD6E7), // Açık temada pembe çizgi
-                width: 1.0,
+        ),
+        backgroundColor: isDarkMode ? AppTheme.darkCardColor : Colors.white,
+        content: Container(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildLanguageOption(
+                context,
+                languageCode: 'tr',
+                label: 'Türkçe',
+                nativeLabel: 'Türkçe',
+                isSelected: locale.languageCode == 'tr',
+                onTap: () {
+                  Navigator.pop(context);
+                  _changeLanguage(ref, 'tr');
+                },
               ),
-            ),
-            padding: EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0, left: 8.0),
-                  child: Text(
-                    'Dil Ayarları',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
-                Divider(
-                    height: 1,
-                    color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
-                _buildLanguageOption(context, ref, 'Sistem Dili', 'system',
-                    currentLocale, 'Cihaz dil ayarlarını kullan'),
-                Divider(
-                    height: 1,
-                    color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
-                _buildLanguageOption(
-                    context, ref, 'English', 'en', currentLocale, 'İngilizce'),
-                Divider(
-                    height: 1,
-                    color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
-                _buildLanguageOption(
-                    context, ref, 'Türkçe', 'tr', currentLocale, 'Türkçe'),
-                Divider(
-                    height: 1,
-                    color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
-                _buildLanguageOption(
-                    context, ref, 'Español', 'es', currentLocale, 'İspanyolca'),
-                Divider(
-                    height: 1,
-                    color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
-                _buildLanguageOption(
-                    context, ref, '日本語', 'ja', currentLocale, 'Japonca'),
-                Divider(
-                    height: 1,
-                    color: isDarkMode ? Colors.white24 : Colors.grey.shade300),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(
-                      'İptal',
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              _buildLanguageOption(
+                context,
+                languageCode: 'en',
+                label: 'English',
+                nativeLabel: 'English',
+                isSelected: locale.languageCode == 'en',
+                onTap: () {
+                  Navigator.pop(context);
+                  _changeLanguage(ref, 'en');
+                },
+              ),
+              _buildLanguageOption(
+                context,
+                languageCode: 'es',
+                label: 'Español',
+                nativeLabel: 'Español',
+                isSelected: locale.languageCode == 'es',
+                onTap: () {
+                  Navigator.pop(context);
+                  _changeLanguage(ref, 'es');
+                },
+              ),
+              _buildLanguageOption(
+                context,
+                languageCode: 'ja',
+                label: '日本語',
+                nativeLabel: 'Japonca',
+                isSelected: locale.languageCode == 'ja',
+                onTap: () {
+                  Navigator.pop(context);
+                  _changeLanguage(ref, 'ja');
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              context.l10n.cancel,
+              style: TextStyle(color: AppTheme.primaryColor),
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  Widget _buildLanguageOption(BuildContext context, WidgetRef ref, String title,
-      String localeCode, Locale currentLocale, String subtitle) {
-    final isSelected = currentLocale.languageCode == localeCode;
+  // Dil değiştirme
+  void _changeLanguage(WidgetRef ref, String languageCode) {
+    ref.read(localeProvider.notifier).state = Locale(languageCode);
+    _saveLanguagePreference(languageCode);
+  }
+
+  // Dil tercihini kaydet
+  Future<void> _saveLanguagePreference(String languageCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language_code', languageCode);
+  }
+
+  Widget _buildLanguageOption(
+    BuildContext context, {
+    required String languageCode,
+    required String label,
+    required String nativeLabel,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return InkWell(
-      onTap: () async {
-        // Dili değiştir
-        ref.read(localeProvider.notifier).state = Locale(localeCode);
-
-        // Değişikliği SharedPreferences'a kaydet
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('language_code', localeCode);
-
-        if (context.mounted) {
-          Navigator.of(context).pop();
-        }
-      },
+      onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
         child: Row(
           children: [
             Expanded(
@@ -659,16 +655,19 @@ class SettingsScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    label,
                     style: TextStyle(
                       fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: isDarkMode ? Colors.white : Colors.black,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected
+                          ? AppTheme.primaryColor
+                          : (isDarkMode ? Colors.white : Colors.black),
                     ),
                   ),
                   SizedBox(height: 4),
                   Text(
-                    subtitle,
+                    nativeLabel,
                     style: TextStyle(
                       fontSize: 14,
                       color: isDarkMode ? Colors.white70 : Colors.black54,
@@ -678,16 +677,10 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             if (isSelected)
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFFD32F2F), // Kırmızı onay işareti
-                ),
-                child: Icon(
-                  Icons.check,
-                  color: Colors.white,
-                  size: 20,
-                ),
+              Icon(
+                Icons.check_circle,
+                color: AppTheme.primaryColor,
+                size: 24,
               ),
           ],
         ),

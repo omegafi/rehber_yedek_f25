@@ -234,23 +234,33 @@ class ContactsManager {
           'Kişi sayısı sınırlandırıldı: ${filteredContacts.length} -> $limitContacts');
     }
 
+    // Tarih formatını oluştur: yyyyMMdd
+    final dateStr = DateFormat('yyyyMMdd').format(DateTime.now());
+
+    // Dosya adını tarih ve kişi sayısı ile oluştur
+    final contactCount = contacts.length;
+    final fileNamePrefix = 'contacts_${dateStr}_${contactCount}kisi';
+
     // Format işlemine göre dosya oluştur
     String filePath;
     switch (format) {
       case ContactFormat.vCard:
-        filePath = await _exportAsVCard(contacts);
+        filePath =
+            await _exportAsVCard(contacts, fileNamePrefix: fileNamePrefix);
         break;
       case ContactFormat.csv:
-        filePath = await _exportAsCSV(contacts);
+        filePath = await _exportAsCSV(contacts, fileNamePrefix: fileNamePrefix);
         break;
       case ContactFormat.excel:
-        filePath = await _exportAsExcel(contacts);
+        filePath =
+            await _exportAsExcel(contacts, fileNamePrefix: fileNamePrefix);
         break;
       case ContactFormat.pdf:
-        filePath = await _exportAsPDF(contacts);
+        filePath = await _exportAsPDF(contacts, fileNamePrefix: fileNamePrefix);
         break;
       case ContactFormat.json:
-        filePath = await _exportAsJSON(contacts);
+        filePath =
+            await _exportAsJSON(contacts, fileNamePrefix: fileNamePrefix);
         break;
     }
 
@@ -259,7 +269,8 @@ class ContactsManager {
   }
 
   // vCard formatında dışa aktar
-  Future<String> _exportAsVCard(List<Contact> contacts) async {
+  Future<String> _exportAsVCard(List<Contact> contacts,
+      {String? fileNamePrefix}) async {
     // Zamanlayıcı başlat
     final stopwatch = Stopwatch()..start();
 
@@ -269,8 +280,9 @@ class ContactsManager {
     try {
       // Geçici dizine erişimi kontrol et ve dizini oluştur
       final directory = await getTemporaryDirectory();
-      final filePath =
-          '${directory.path}/contacts_${DateTime.now().millisecondsSinceEpoch}.vcf';
+      final fileName =
+          fileNamePrefix ?? 'contacts_${DateTime.now().millisecondsSinceEpoch}';
+      final filePath = '${directory.path}/${fileName}.vcf';
       final file = File(filePath);
 
       // Log ekleyelim
@@ -326,15 +338,17 @@ class ContactsManager {
   }
 
   // CSV formatında dışa aktar (daha verimli uygulama)
-  Future<String> _exportAsCSV(List<Contact> contacts) async {
+  Future<String> _exportAsCSV(List<Contact> contacts,
+      {String? fileNamePrefix}) async {
     final stopwatch = Stopwatch()..start();
     final totalContacts = contacts.length;
 
     try {
       // Geçici dizine erişimi kontrol et ve dizini oluştur
       final directory = await getTemporaryDirectory();
-      final filePath =
-          '${directory.path}/contacts_${DateTime.now().millisecondsSinceEpoch}.csv';
+      final fileName =
+          fileNamePrefix ?? 'contacts_${DateTime.now().millisecondsSinceEpoch}';
+      final filePath = '${directory.path}/${fileName}.csv';
       final file = File(filePath);
 
       // Log ekleyelim
@@ -420,15 +434,17 @@ class ContactsManager {
   }
 
   // Excel formatında dışa aktar (daha hızlı uygulama)
-  Future<String> _exportAsExcel(List<Contact> contacts) async {
+  Future<String> _exportAsExcel(List<Contact> contacts,
+      {String? fileNamePrefix}) async {
     final stopwatch = Stopwatch()..start();
     final totalContacts = contacts.length;
 
     try {
       // Geçici dizine erişimi kontrol et ve dizini oluştur
       final directory = await getTemporaryDirectory();
-      final filePath =
-          '${directory.path}/contacts_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      final fileName =
+          fileNamePrefix ?? 'contacts_${DateTime.now().millisecondsSinceEpoch}';
+      final filePath = '${directory.path}/${fileName}.xlsx';
       final file = File(filePath);
 
       // Log ekleyelim
@@ -540,15 +556,17 @@ class ContactsManager {
   }
 
   // PDF formatında dışa aktar (daha verimli uygulama)
-  Future<String> _exportAsPDF(List<Contact> contacts) async {
+  Future<String> _exportAsPDF(List<Contact> contacts,
+      {String? fileNamePrefix}) async {
     final stopwatch = Stopwatch()..start();
     final totalContacts = contacts.length;
 
     try {
       // Geçici dizine erişimi kontrol et ve dizini oluştur
       final directory = await getTemporaryDirectory();
-      final filePath =
-          '${directory.path}/contacts_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final fileName =
+          fileNamePrefix ?? 'contacts_${DateTime.now().millisecondsSinceEpoch}';
+      final filePath = '${directory.path}/${fileName}.pdf';
       final file = File(filePath);
 
       // Log ekleyelim
@@ -658,15 +676,17 @@ class ContactsManager {
   }
 
   // JSON formatında dışa aktar (daha verimli uygulama)
-  Future<String> _exportAsJSON(List<Contact> contacts) async {
+  Future<String> _exportAsJSON(List<Contact> contacts,
+      {String? fileNamePrefix}) async {
     final stopwatch = Stopwatch()..start();
     final totalContacts = contacts.length;
 
     try {
       // Geçici dizine erişimi kontrol et ve dizini oluştur
       final directory = await getTemporaryDirectory();
-      final filePath =
-          '${directory.path}/contacts_${DateTime.now().millisecondsSinceEpoch}.json';
+      final fileName =
+          fileNamePrefix ?? 'contacts_${DateTime.now().millisecondsSinceEpoch}';
+      final filePath = '${directory.path}/${fileName}.json';
       final file = File(filePath);
 
       // Log ekleyelim
@@ -804,6 +824,30 @@ class ContactsManager {
     _cachedContacts = null;
 
     return importedCount;
+  }
+
+  // vCard dosyasındaki kişi sayısını analiz et
+  Future<int> analyzeVCardContacts(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw Exception('Dosya bulunamadı: $filePath');
+      }
+
+      final content = await file.readAsString();
+
+      // vCard ayrıştırma işlemi (BEGIN:VCARD sayısına göre)
+      final vcards = content.split('BEGIN:VCARD');
+
+      // İlk eleman boş olabilir, bu yüzden 1'den büyük olanları sayarız
+      int contactCount = vcards.where((card) => card.trim().isNotEmpty).length;
+
+      debugPrint('vCard dosyasında $contactCount kişi bulundu: $filePath');
+      return contactCount;
+    } catch (e) {
+      debugPrint('vCard analiz hatası: $e');
+      return 0;
+    }
   }
 
   // Tekrarlanan telefon numaralarını bul
@@ -996,10 +1040,27 @@ class ContactsManager {
           // Ana kişide bu numara yoksa ekle
           if (!mergedContact.phones.any((p) =>
               p.number.replaceAll(RegExp(r'\D'), '') == normalizedNumber)) {
+            // PhoneLabel tipini String'e dönüştür
+            String labelStr;
+            if (phone.label == null) {
+              labelStr = 'mobile'; // Varsayılan değer
+            } else {
+              try {
+                labelStr = phone.label.toString();
+                // "PhoneLabel.mobile" formatından sadece "mobile" kısmını al
+                if (labelStr.contains('.')) {
+                  labelStr = labelStr.split('.').last;
+                }
+              } catch (e) {
+                labelStr = 'mobile';
+                debugPrint('Phone label dönüştürme hatası: $e');
+              }
+            }
+
             mutableContact['phones'].add({
               'number': phone.number,
               'normalizedNumber': normalizedNumber,
-              'label': phone.label,
+              'label': labelStr,
               'customLabel': phone.customLabel
             });
           }
@@ -1012,9 +1073,29 @@ class ContactsManager {
           // Ana kişide bu email yoksa ekle
           if (!mergedContact.emails
               .any((e) => e.address.trim().toLowerCase() == normalizedEmail)) {
+            // EmailLabel tipinin String'e dönüştürülememesi sorununu çözmek için
+            // label değerini güvenli şekilde String'e dönüştürelim
+            String labelStr;
+            if (email.label == null) {
+              labelStr = 'home'; // Varsayılan değer
+            } else {
+              try {
+                labelStr = email.label.toString();
+                // toString() metodu "EmailLabel.home" gibi bir değer döndürür
+                // Sadece "home" kısmını almak için
+                if (labelStr.contains('.')) {
+                  labelStr = labelStr.split('.').last;
+                }
+              } catch (e) {
+                // Dönüştürme hatası durumunda varsayılan değer kullan
+                labelStr = 'home';
+                debugPrint('Email label dönüştürme hatası: $e');
+              }
+            }
+
             mutableContact['emails'].add({
               'address': email.address,
-              'label': email.label,
+              'label': labelStr,
               'customLabel': email.customLabel
             });
           }
@@ -1030,6 +1111,23 @@ class ContactsManager {
           if (!mergedContact.addresses.any((a) =>
               '${a.street},${a.city},${a.country}'.toLowerCase() ==
               addressString)) {
+            // AddressLabel tipini String'e dönüştür
+            String labelStr;
+            if (address.label == null) {
+              labelStr = 'home'; // Varsayılan değer
+            } else {
+              try {
+                labelStr = address.label.toString();
+                // "AddressLabel.home" formatından sadece "home" kısmını al
+                if (labelStr.contains('.')) {
+                  labelStr = labelStr.split('.').last;
+                }
+              } catch (e) {
+                labelStr = 'home';
+                debugPrint('Address label dönüştürme hatası: $e');
+              }
+            }
+
             mutableContact['addresses'].add({
               'address': address.address,
               'street': address.street,
@@ -1037,7 +1135,7 @@ class ContactsManager {
               'state': address.state,
               'postalCode': address.postalCode,
               'country': address.country,
-              'label': address.label,
+              'label': labelStr,
               'customLabel': address.customLabel
             });
           }
@@ -1088,11 +1186,28 @@ class ContactsManager {
         // Doğum günü bilgisini ekle (eğer ana kişide yoksa)
         if (mergedContact.events.isEmpty && otherFull.events.isNotEmpty) {
           for (var event in otherFull.events) {
+            // EventLabel tipini String'e dönüştür
+            String labelStr;
+            if (event.label == null) {
+              labelStr = 'birthday'; // Varsayılan değer
+            } else {
+              try {
+                labelStr = event.label.toString();
+                // "EventLabel.birthday" formatından sadece "birthday" kısmını al
+                if (labelStr.contains('.')) {
+                  labelStr = labelStr.split('.').last;
+                }
+              } catch (e) {
+                labelStr = 'birthday';
+                debugPrint('Event label dönüştürme hatası: $e');
+              }
+            }
+
             mutableContact['events'].add({
               'year': event.year,
               'month': event.month,
               'day': event.day,
-              'label': event.label,
+              'label': labelStr,
               'customLabel': event.customLabel
             });
           }

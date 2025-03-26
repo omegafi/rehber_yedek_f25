@@ -7,6 +7,7 @@ import '../services/backup_service.dart';
 import '../models/contact_format.dart';
 import '../theme/app_theme.dart';
 import 'package:flutter/foundation.dart';
+import '../screens/home_screen.dart'; // Provider'lar için
 
 // İçe aktarma işlem durumları
 enum ImportState { initial, loading, success, error }
@@ -479,6 +480,13 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
+      isScrollControlled: true,
+      enableDrag: true,
+      useSafeArea: true,
+      constraints: BoxConstraints(
+        maxWidth:
+            MediaQuery.of(context).size.width - 48, // 24 dp her iki taraftan
+      ),
       builder: (context) {
         return SafeArea(
           child: Column(
@@ -619,19 +627,128 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         return;
       }
 
+      // Dosya içeriğini analiz et ve kişi sayısını öğren
+      final contactsManager = ContactsManager();
+      final contactCount = await contactsManager.analyzeVCardContacts(filePath);
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (contactCount <= 0) {
+        setState(() {
+          _errorMessage = 'Seçilen dosyada içe aktarılacak kişi bulunamadı.';
+        });
+        return;
+      }
+
+      // Kişileri içe aktarmayı onaylama diyaloğu göster
+      final shouldRestore =
+          await _showRestoreConfirmDialog(context, filePath, contactCount);
+
+      if (!shouldRestore) {
+        return; // Kullanıcı iptal etti
+      }
+
+      // Yükleme durumunu göster
+      setState(() {
+        _isLoading = true;
+      });
+
       final importedCount =
-          await _contactsManager.importContactsFromVCard(filePath);
+          await contactsManager.importContactsFromVCard(filePath);
 
       setState(() {
         _isLoading = false;
         _successMessage =
             '$importedCount kişi rehberinize başarıyla geri yüklendi.';
       });
+
+      // Tüm sağlayıcıları güncelle
+      ref.invalidate(backupFilesProvider);
+
+      // Ana ekranda bulunan rehber sağlayıcılarını güncelle
+      ref.invalidate(contactsListProvider);
+      ref.invalidate(contactsCountProvider);
+      ref.invalidate(filteredContactsCountProvider);
+      ref.invalidate(duplicateContactsProvider);
+      ref.invalidate(duplicateNumbersProvider);
+      ref.invalidate(duplicateNamesProvider);
+      ref.invalidate(duplicateEmailsProvider);
+      ref.invalidate(duplicateNumbersPhoneProvider);
+
+      // Kısa bir gecikme ekleyerek ana ekrana dönüş
+      await Future.delayed(Duration(milliseconds: 500));
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       setState(() {
         _isLoading = false;
         _errorMessage = 'Geri yükleme sırasında bir hata oluştu: $e';
       });
     }
+  }
+
+  // Geri yükleme onayı diyaloğu
+  Future<bool> _showRestoreConfirmDialog(
+      BuildContext context, String filePath, int contactCount) async {
+    final fileName = filePath.split('/').last;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        title: const Text('Yedeği İçe Aktar'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('$fileName dosyasında $contactCount kişi tespit edildi.'),
+            SizedBox(height: 8),
+            Text(
+              'Bu kişileri rehberinize geri yüklemek istiyor musunuz?',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Bu işlem mevcut kişilerinizi değiştirmez, yedekteki kişileri rehberinize ekler.',
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : Colors.black54,
+                fontSize: 12,
+              ),
+            ),
+            if (contactCount > 100)
+              Padding(
+                padding: const EdgeInsets.only(top: 12.0),
+                child: Text(
+                  'Not: $contactCount kişinin geri yüklenmesi biraz zaman alabilir.',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('İptal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+            ),
+            child: Text('Geri Yükle'),
+          ),
+        ],
+      ),
+    );
+
+    return result ?? false;
   }
 }

@@ -98,7 +98,7 @@ void main() async {
   // Tercihleri al
   final isPremium = prefs.getBool('is_premium') ?? false;
   final isFirstRun = prefs.getBool('onboarding_completed') ?? false;
-  final String preferredLanguage = prefs.getString('language') ?? 'tr';
+  final String preferredLanguage = prefs.getString('language_code') ?? 'tr';
   final bool isDarkMode = prefs.getBool('dark_theme') ?? false;
   final themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
 

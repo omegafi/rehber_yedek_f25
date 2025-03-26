@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../main.dart'; // Provider'lar için
 import '../screens/home_screen.dart'; // contactsCountProvider için
 import '../utils/app_localizations.dart'; // Lokalizasyon için
+import 'package:intl/intl.dart';
 
 // Premium durumu ve maksimum ücretsiz kişi sayısı için import
 import '../main.dart'
@@ -102,8 +103,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         : AppTheme.lightBackgroundColor;
     final cardColor =
         isDarkMode ? AppTheme.darkCardColor : AppTheme.lightCardColor;
-    final textColor =
-        isDarkMode ? AppTheme.darkTextColor : AppTheme.lightTextColor;
+    final textColor = isDarkMode ? Colors.white : Colors.black;
     final textSecondaryColor = isDarkMode
         ? AppTheme.darkTextSecondaryColor
         : AppTheme.lightTextSecondaryColor;
@@ -132,34 +132,31 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       backgroundColor: backgroundColor,
       appBar: AppBar(
         title: Text(
-          'Rehberi Dışa Aktar',
+          context.l10n.export_screen_title,
           style: TextStyle(color: textColor),
         ),
-        backgroundColor: backgroundColor,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: textColor),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        iconTheme: IconThemeData(color: textColor),
+        backgroundColor: backgroundColor,
       ),
       body: permissionState == PermissionStatus.granted
           ? Container(
               color: contentBackgroundColor,
               child: contactsCountAsync.when(
                 loading: () => Center(
-              child: Column(
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                    children: [
                       CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(
                           AppTheme.primaryColor,
                         ),
                       ),
                       SizedBox(height: 20),
-                  Text(
-                        'Kişiler Yükleniyor...',
-                    style: TextStyle(
-                      color: textColor,
+                      Text(
+                        context.l10n.loading_contacts,
+                        style: TextStyle(
+                          color: textColor,
                           fontSize: 16,
                         ),
                       ),
@@ -184,20 +181,20 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                       ? filteredCount
                       : min(filteredCount, maxFreeContacts);
 
-                  return Padding(
+                  return SingleChildScrollView(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         // Dışa Aktarma Formatı
-                  Text(
-                          'Dışa Aktarma Formatı',
-                    style: TextStyle(
+                        Text(
+                          context.l10n.export_format,
+                          style: TextStyle(
                             fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
-                  ),
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
+                        ),
                         SizedBox(height: 16),
 
                         // Format seçenekleri
@@ -211,63 +208,67 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                             ),
                           ),
                           child: Padding(
-                            padding: EdgeInsets.symmetric(
-                                vertical: 16, horizontal: 12),
+                            padding: EdgeInsets.all(12),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: ContactFormat.values.map((format) {
-                                return Expanded(
-                                  child: InkWell(
-                                    onTap: () {
-                                      ref
-                                          .read(selectedFormatProvider.notifier)
-                                          .state = format;
-                                    },
-                                    child: Container(
-                                      decoration: BoxDecoration(
+                                return InkWell(
+                                  onTap: () {
+                                    ref
+                                        .read(selectedFormatProvider.notifier)
+                                        .state = format;
+                                  },
+                                  child: Container(
+                                    width: 56,
+                                    decoration: BoxDecoration(
+                                      color: selectedFormat == format
+                                          ? AppTheme.primaryColor
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
                                         color: selectedFormat == format
-                                            ? AppTheme.primaryColor
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(10),
+                                            ? Colors.transparent
+                                            : isDarkMode
+                                                ? Colors.white30
+                                                : Colors.black12,
+                                        width: 1,
                                       ),
-                                      margin:
-                                          EdgeInsets.symmetric(horizontal: 6),
-                                      padding: EdgeInsets.symmetric(
-                                          vertical: 12, horizontal: 4),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            _getFormatIcon(format),
+                                    ),
+                                    padding: EdgeInsets.symmetric(vertical: 8),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          _getFormatIcon(format),
+                                          color: selectedFormat == format
+                                              ? Colors.white
+                                              : textColor,
+                                          size: 24,
+                                        ),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          format.displayName,
+                                          style: TextStyle(
                                             color: selectedFormat == format
                                                 ? Colors.white
                                                 : textColor,
-                                            size: 22,
+                                            fontWeight: selectedFormat == format
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                            fontSize: 12,
                                           ),
-                                          SizedBox(height: 8),
-                                          Text(
-                                            format.displayName,
-                                            style: TextStyle(
-                                              color: selectedFormat == format
-                                                  ? Colors.white
-                                                  : textColor,
-                                              fontWeight:
-                                                  selectedFormat == format
-                                                      ? FontWeight.bold
-                                                      : FontWeight.w400,
-                                              fontSize: 12,
-                                            ),
-                                            textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 );
                               }).toList(),
-                ),
-              ),
-            ),
+                            ),
+                          ),
+                        ),
 
                         SizedBox(height: 24),
 
@@ -275,17 +276,17 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                         Container(
                           padding: EdgeInsets.all(16),
                           height: 110, // Sabit yükseklik
-      decoration: BoxDecoration(
+                          decoration: BoxDecoration(
                             color: isDarkMode
                                 ? Colors.white.withOpacity(0.05)
                                 : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
                                   Icon(
                                     _getFormatIcon(selectedFormat),
                                     color: AppTheme.primaryColor,
@@ -294,8 +295,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                                   SizedBox(width: 8),
                                   Text(
                                     '${selectedFormat.displayName}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
                                       fontSize: 16,
                                       color: textColor,
                                     ),
@@ -306,23 +307,23 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                                     style: TextStyle(
                                       color: textSecondaryColor,
                                       fontSize: 14,
-                ),
-              ),
-            ],
-          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                               SizedBox(height: 8),
                               Expanded(
                                 child: Text(
                                   _getFormatDescription(selectedFormat),
-              style: TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     color: textSecondaryColor,
                                   ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
 
@@ -330,7 +331,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
 
                         // Yedekleme Hedefi
                         Text(
-                          'Yedekleme Hedefi',
+                          context.l10n.export_destination,
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -350,10 +351,11 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                               width: 1,
                             ),
                           ),
-                          padding: EdgeInsets.symmetric(
-                              vertical: 16, horizontal: 16),
+                          padding: EdgeInsets.all(16),
                           child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
+                              // Paylaş seçeneği
                               Expanded(
                                 child: InkWell(
                                   onTap: () {
@@ -363,7 +365,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                                     });
                                   },
                                   child: Container(
-                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    padding: EdgeInsets.symmetric(vertical: 12),
                                     decoration: BoxDecoration(
                                       color: Colors.transparent,
                                       borderRadius: BorderRadius.circular(12),
@@ -372,80 +374,83 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                                                 ExportDestination.share
                                             ? AppTheme.primaryColor
                                             : Colors.transparent,
-                                        width: 3,
+                                        width: 2.5,
                                       ),
                                     ),
-                                    child: Row(
+                                    child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
                                         Icon(
                                           Icons.share,
-                      color: AppTheme.primaryColor,
-                                          size: 24,
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Paylaş',
-                                          style: TextStyle(
-                                            color: textColor,
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 16,
-                                          ),
-                    ),
-                ],
-              ),
-            ),
-                                ),
-                              ),
-                              SizedBox(width: 16),
-        Expanded(
-                                child: InkWell(
-            onTap: () {
-              setState(() {
-                                      _exportDestination =
-                                          ExportDestination.saveToPhone;
-              });
-            },
-      child: Container(
-                                    padding: EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-                                      color: Colors.transparent,
-                                      borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-                                        color: _exportDestination ==
-                                                ExportDestination.saveToPhone
-                ? AppTheme.primaryColor
-                                            : Colors.transparent,
-                                        width: 3,
-          ),
-        ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-          children: [
-            Icon(
-                                          Icons.save,
                                           color: AppTheme.primaryColor,
                                           size: 24,
                                         ),
-                                        SizedBox(width: 8),
-            Text(
-                                          'Kaydet',
-              style: TextStyle(
-                color: textColor,
+                                        SizedBox(height: 6),
+                                        Text(
+                                          context.l10n.share,
+                                          style: TextStyle(
+                                            color: textColor,
                                             fontWeight: FontWeight.w500,
-                                            fontSize: 16,
+                                            fontSize: 15,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-              ),
-            ),
-          ],
-        ),
-      ),
+                                ),
+                              ),
+
+                              SizedBox(width: 16),
+
+                              // Kaydet seçeneği
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _exportDestination =
+                                          ExportDestination.saveToPhone;
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: _exportDestination ==
+                                                ExportDestination.saveToPhone
+                                            ? AppTheme.primaryColor
+                                            : Colors.transparent,
+                                        width: 2.5,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.save,
+                                          color: AppTheme.primaryColor,
+                                          size: 24,
+                                        ),
+                                        SizedBox(height: 6),
+                                        Text(
+                                          context.l10n.save_to_phone,
+                                          style: TextStyle(
+                                            color: textColor,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
 
                         SizedBox(height: 20),
 
@@ -465,12 +470,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                               )
                             : ElevatedButton.icon(
                                 onPressed: filteredCount > 0
-                                    ? () => _exportContacts(
-                                          selectedFormat,
-                                          isPremium,
-                                          maxFreeContacts,
-                                          filteredCount,
-                                        )
+                                    ? () => _exportContacts()
                                     : null,
                                 icon: Icon(
                                   _exportDestination == ExportDestination.share
@@ -479,8 +479,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                                 ),
                                 label: Text(
                                   _exportDestination == ExportDestination.share
-                                      ? 'Dışa Aktar ve Paylaş'
-                                      : 'Dışa Aktar ve Kaydet',
+                                      ? context.l10n.export_and_share
+                                      : context.l10n.save_share,
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -510,7 +510,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                               color: Colors.amber,
                             ),
                             label: Text(
-                              'Premium Satın Al',
+                              context.l10n.premium_button,
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w500,
@@ -543,7 +543,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                           Padding(
                             padding: const EdgeInsets.only(top: 16.0),
                             child: Text(
-                              'Ücretsiz sürümde yalnızca ilk $maxFreeContacts kişiyi dışa aktarabilirsiniz.',
+                              context.l10n.premium_limit_message.replaceAll(
+                                  '{limit}', maxFreeContacts.toString()),
                               style: TextStyle(
                                 color: Colors.orange,
                                 fontSize: 12,
@@ -565,15 +566,15 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   String _getFormatDescription(ContactFormat format) {
     switch (format) {
       case ContactFormat.vCard:
-        return 'Tüm cihazlarla uyumlu rehber formatı';
+        return context.l10n.vcard_desc;
       case ContactFormat.csv:
-        return 'Excel ve tablolama programları için uygun format';
+        return context.l10n.csv_desc;
       case ContactFormat.excel:
-        return 'Microsoft Excel formatında tablo dosyası';
+        return context.l10n.excel_desc;
       case ContactFormat.pdf:
-        return 'Taşınabilir belge formatı, tüm cihazlarda görüntülenebilir';
+        return context.l10n.pdf_desc;
       case ContactFormat.json:
-        return 'Yapılandırılmış veri formatı, geliştiriciler için uygun';
+        return context.l10n.json_desc;
     }
   }
 
@@ -608,7 +609,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             ),
             SizedBox(height: 16),
             Text(
-              'Kişileri dışa aktarmak için rehber iznine ihtiyacımız var',
+              context.l10n.permission_required,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18,
@@ -618,7 +619,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             ),
             SizedBox(height: 16),
             Text(
-              'Kişilerinizi telefonunuza veya buluta yedeklemek için rehber erişim izni vermeniz gerekiyor.',
+              context.l10n.contacts_permission_message,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: textColor.withOpacity(0.7),
@@ -628,7 +629,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             ElevatedButton.icon(
               onPressed: _requestPermission,
               icon: Icon(Icons.security),
-              label: Text('İzin Ver'),
+              label: Text(context.l10n.grant_permission),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryColor,
                 foregroundColor: Colors.white,
@@ -655,43 +656,73 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   }
 
   // Dışa aktarma işlemi
-  Future<void> _exportContacts(
-    ContactFormat format,
-    bool isPremium,
-    int maxFreeContacts,
-    int contactsCount,
-  ) async {
-    // Premium kontrolü
-    if (!isPremium &&
-        contactsCount > maxFreeContacts &&
-        _selectedContactIds == null) {
-      // Premium olmayan kullanıcılar için sınırlama
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Ücretsiz sürümde yalnızca ilk $maxFreeContacts kişiyi dışa aktarabilirsiniz. Premium\'a yükseltin!',
-          ),
-          action: SnackBarAction(
-            label: 'Premium',
-            onPressed: () {
-              Navigator.pushNamed(context, '/premium');
-            },
-          ),
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isExporting = true;
-      _errorMessage = null;
-    });
-
-    ref.read(exportStateProvider.notifier).state = ExportState.loading;
-    ref.read(exportStatusMessageProvider.notifier).state =
-        'Kişiler hazırlanıyor...';
-
+  Future<void> _exportContacts() async {
     try {
+      // Format bilgisini al
+      final format = ref.read(selectedFormatProvider);
+
+      // Premium durumunu al
+      final isPremium = ref.read(isPremiumProvider);
+
+      // Ücretsiz sınır
+      final maxFreeContacts = ref.read(maxFreeContactsProvider);
+
+      // Filtrelenmiş kişi sayısını al
+      final filteredCountAsync = ref.read(filteredContactsCountProvider);
+      final int contactsCount = await filteredCountAsync.maybeWhen(
+        data: (count) => count,
+        orElse: () async {
+          final totalCount = await ref.read(contactsCountProvider.future);
+          return totalCount;
+        },
+      );
+
+      // Aktarılacak kişi sayısını belirle
+      final int exportContactCount = !isPremium &&
+              contactsCount > maxFreeContacts &&
+              _selectedContactIds == null
+          ? maxFreeContacts
+          : contactsCount;
+
+      // Premium kontrolü
+      if (!isPremium &&
+          contactsCount > maxFreeContacts &&
+          _selectedContactIds == null) {
+        // Premium olmayan kullanıcılar için sınırlama
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.l10n.premium_limit_message
+                  .replaceAll('{limit}', maxFreeContacts.toString()),
+            ),
+            action: SnackBarAction(
+              label: context.l10n.premium_title,
+              onPressed: () {
+                Navigator.pushNamed(context, '/premium');
+              },
+            ),
+          ),
+        );
+      }
+
+      // Dışa aktarım onayı diyaloğunu göster
+      final shouldExport = await _showExportConfirmDialog(
+          format: format, contactsCount: exportContactCount);
+
+      if (!shouldExport) {
+        return; // Kullanıcı iptal etti
+      }
+
+      setState(() {
+        _isExporting = true;
+        _errorMessage = null;
+      });
+
+      // Dışa aktarma durumunu güncelle
+      ref.read(exportStateProvider.notifier).state = ExportState.loading;
+      ref.read(exportStatusMessageProvider.notifier).state =
+          'Kişiler hazırlanıyor...';
+
       // Filtreleme ayarlarını al
       final includeContactsWithoutNumber =
           ref.read(includeContactsWithoutNumberProvider);
@@ -707,52 +738,59 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         includeNumbersWithoutName: includeNumbersWithoutName,
       );
 
-        ref.read(exportedFileProvider.notifier).state = exportedFile;
-        ref.read(exportStateProvider.notifier).state = ExportState.success;
+      ref.read(exportedFileProvider.notifier).state = exportedFile;
+      ref.read(exportStateProvider.notifier).state = ExportState.success;
 
       setState(() {
         _isExporting = false;
       });
 
       // Dosyayı paylaş veya kaydet
-        if (_exportDestination == ExportDestination.share) {
+      if (_exportDestination == ExportDestination.share) {
         ref.read(exportStatusMessageProvider.notifier).state =
             'Dosya paylaşılıyor...';
-          await _fileSharingService.shareFile(
-            exportedFile,
-            format,
-          );
-        } else {
+        await _fileSharingService.shareFile(
+          exportedFile,
+          format,
+        );
+      } else {
         // Telefona kaydetme işlemi
-          await _saveToPhone(exportedFile, format);
-        }
+        await _saveToPhone(exportedFile, format);
+      }
 
       // BackupService üzerinden otomatik yedeği kaydet
-        try {
-          final backupService = BackupService();
+      try {
+        final backupService = BackupService();
         final fileExt = format.fileExtension.replaceAll('.', '');
+
+        // Dosya ismini tarih ve kişi sayısı ile birlikte oluştur
+        final dateStr = DateFormat('yyyyMMdd').format(DateTime.now());
         final filename =
-            "${_fileNameController.text}_${DateTime.now().millisecondsSinceEpoch}.$fileExt";
+            "${_fileNameController.text}_${dateStr}_${exportContactCount}kisi.$fileExt";
 
         // Dosya içeriğini oku
-          final fileContent = await File(exportedFile).readAsString();
+        final fileContent = await File(exportedFile).readAsString();
 
-          // Yedek dosyasını oluştur
+        // Yedek dosyasını oluştur
         final savedFile = await backupService
             .createBackupFile(fileContent, fileExt, customName: filename);
 
-          debugPrint('Dosya kalıcı olarak yedeklendi: ${savedFile.path}');
+        debugPrint('Dosya kalıcı olarak yedeklendi: ${savedFile.path}');
 
-          // Bu çözüm ekran kapatıldığında dosyanın silinmemesini sağlar
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content:
-                  Text('Dosya yedeklendi: ${savedFile.path.split('/').last}'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        } catch (e) {
-          debugPrint('Dosya yedekleme hatası: $e');
+        // Bu çözüm ekran kapatıldığında dosyanın silinmemesini sağlar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('Dosya yedeklendi: ${savedFile.path.split('/').last}'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        // Kısa bir gecikme ekleyerek ana ekrana dönüş
+        await Future.delayed(Duration(milliseconds: 500));
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } catch (e) {
+        debugPrint('Dosya yedekleme hatası: $e');
       }
     } catch (e) {
       ref.read(exportStateProvider.notifier).state = ExportState.error;
@@ -761,6 +799,78 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         _errorMessage = 'Hata: $e';
       });
     }
+  }
+
+  // Dışa aktarma onay diyaloğu
+  Future<bool> _showExportConfirmDialog({
+    required ContactFormat format,
+    required int contactsCount,
+  }) async {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    // Dışa aktarma hedefi
+    final destination = _exportDestination == ExportDestination.share
+        ? 'paylaşılmak'
+        : 'kaydedilmek';
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        title: const Text('Kişileri Dışa Aktar'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                '$contactsCount kişi ${format.displayName} formatında dışa aktarılacak.'),
+            SizedBox(height: 8),
+            Text(
+              'Oluşturulacak dosya $destination üzere hazırlanacak.',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 12),
+            if (_fileNameController.text.isNotEmpty)
+              Text(
+                'Dosya adı: ${_fileNameController.text}_${DateFormat('yyyyMMdd').format(DateTime.now())}_${contactsCount}kisi${format.fileExtension}',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                  fontSize: 12,
+                ),
+              ),
+            if (contactsCount > 200)
+              Padding(
+                padding: const EdgeInsets.only(top: 12.0),
+                child: Text(
+                  'Not: $contactsCount kişinin dışa aktarılması biraz zaman alabilir.',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('İptal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+            ),
+            child: Text('Dışa Aktar'),
+          ),
+        ],
+      ),
+    );
+
+    return result ?? false;
   }
 
   // Telefona kaydetme işlemi

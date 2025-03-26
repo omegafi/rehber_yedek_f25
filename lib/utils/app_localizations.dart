@@ -100,6 +100,10 @@ class AppLocalizations {
   String get export_success => translate('export_success');
   String get export_error => translate('export_error');
   String get export_success_message => translate('export_success_message');
+  String get export_in_progress => translate('export_in_progress');
+  String get export_destination => translate('export_destination');
+  String get save_to_phone => translate('save_to_phone');
+  String get save_share => translate('save_share');
 
   String get permission_required => translate('permission_required');
   String get contacts_permission_message =>
@@ -205,6 +209,67 @@ class AppLocalizations {
   String get about => translate('about_app'); // about_app değerini kullan
   String get import_contacts =>
       translate('import_screen_title'); // import_screen_title değerini kullan
+
+  // Tekrar eden kişiler ve birleştirme ile ilgili çeviriler
+  String get duplicate_numbers => translate('duplicate_numbers');
+  String get duplicate_names => translate('duplicate_names');
+  String get duplicate_emails => translate('duplicate_emails');
+  String get missing_info => translate('missing_info');
+
+  String get select_primary_contact => translate('select_primary_contact');
+  String get primary_contact_info => translate('primary_contact_info');
+  String get merge_selected_contacts => translate('merge_selected_contacts');
+  String get merge_confirmation => translate('merge_confirmation');
+  String get merge_confirmation_message =>
+      translate('merge_confirmation_message');
+  String get merge_contact_message => translate('merge_contact_message');
+  String get merge_warning => translate('merge_warning');
+  String get merge_confirm_button => translate('merge_confirm_button');
+  String get merge_cancel_button => translate('merge_cancel_button');
+  String get merge_success => translate('merge_success');
+  String get merge_error => translate('merge_error');
+  String get merge_select_min => translate('merge_select_min');
+  String get merge_canceled => translate('merge_canceled');
+
+  String get confirm_dialog_title => translate('confirm_dialog_title');
+  String get confirm_dialog_message => translate('confirm_dialog_message');
+  String get confirm => translate('confirm');
+  String get anonymous_name => translate('anonymous_name');
+  String get no_phone_number => translate('no_phone_number');
+
+  // Eksik Bilgili Kişiler için getter'lar
+  String get missing_name => translate('missing_name');
+  String get missing_phone => translate('missing_phone');
+  String get missing_email => translate('missing_email');
+  String get missing_info_filters => translate('missing_info_filters');
+  String get all_missing_info => translate('all_missing_info');
+  String get show_missing_name => translate('show_missing_name');
+  String get show_missing_phone => translate('show_missing_phone');
+  String get show_missing_email => translate('show_missing_email');
+  String get add_missing_info => translate('add_missing_info');
+
+  // Tekrar Eden E-postalar için getter'lar
+  String get email_exists_in_contacts => translate('email_exists_in_contacts');
+  String get merge_duplicate_emails => translate('merge_duplicate_emails');
+  String get duplicate_email_found => translate('duplicate_email_found');
+  String get no_duplicate_emails => translate('no_duplicate_emails');
+  String get no_duplicate_names => translate('no_duplicate_names');
+
+  // Eksik bilgi ekranı için yeni getter'lar
+  String get contacts_found => translate('contacts_found');
+  String get name_label => translate('name_label');
+  String get phone_label => translate('phone_label');
+  String get email_label => translate('email_label');
+  String get no_missing_name => translate('no_missing_name');
+  String get no_missing_phone => translate('no_missing_phone');
+  String get no_missing_email => translate('no_missing_email');
+  String get no_missing_info => translate('no_missing_info');
+
+  // Son eklenen çeviriler
+  String get x_contacts => translate('x_contacts');
+  String get contacts_merging => translate('contacts_merging');
+  String get select_all_option => translate('select_all');
+  String get deselect_all_option => translate('deselect_all');
 }
 
 class _AppLocalizationsDelegate
