@@ -1,0 +1,5 @@
+- MVVM mimarisi uygulanacak
+- State management için provider kullanılacak
+- Navigation için go_router kullanılacak
+- Temiz bir kod yapısı olacak
+- Tasarım modern ve kullanıcı dostu olmalı

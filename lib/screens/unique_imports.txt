@@ -1,0 +1,22 @@
+import '../main.dart' show contactsPermissionProvider;
+import '../main.dart'; // Provider'lar için
+import '../models/contact_format.dart';
+import '../services/contacts_service.dart';
+import '../services/file_sharing_service.dart';
+import '../theme/app_theme.dart';
+import '../utils/app_localizations.dart'; // Lokalizasyon için
+import '../widgets/contact_list_item.dart';
+import 'dart:io';
+import 'export_screen.dart';
+import 'import_screen.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_native_timezone/flutter_native_timezone.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_share/flutter_share.dart';
+import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'settings_screen.dart';
